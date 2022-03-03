@@ -1,0 +1,16 @@
+March 2 2022 
+Sienna handed of these scripts to Allie:
+make_CV_flow_chart_CHLA_South_Bay.py
+make_CV_flow_chart_CHLA_South_Bay_monthlyaverage.py
+make_CV_flow_chart_DIN_South_Bay.py
+make_CV_flow_chart_DIN_South_Bay_monthlyaverage.py
+
+March 3 2022
+Allie updated the following scripts:
+	make_CV_flow_chart_DIN_South_Bay.py
+	make_CV_flow_chart_CHLA_South_Bay.py
+With the following changes:
+- fixed comuptation of timescales
+- justified text used monospaced font to increase readability
+- added units
+- made figure bigger to make more room for arrows

@@ -11,7 +11,7 @@ environment by executing the following from the command line:
 ### USER INPUT
 ################
 
-run_folders = ['FR18_002']
+run_folders = ['FR18_003']
 water_year = 'WY2018'
 FR = True 
 
