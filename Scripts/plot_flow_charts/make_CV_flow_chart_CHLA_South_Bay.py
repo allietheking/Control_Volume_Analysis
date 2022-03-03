@@ -56,17 +56,35 @@ def local2hpc(pathname):
     return pathname 
     
 
-# (1) Define the CSV you want to read in 
+# (1) if using windows, where is richmondvol1 mounted?
+windir = 'X'
+
+# (2) Define the CSV you want to read in 
 run_name = 'FR17_003'
 
-# (2) Define the time window you want to average over
-time_window = ['2016-10-01', '2017-02-01']  #'2012-10-01',
-
 # (3) What's the water year?
-water_year = 'WY2017'
+water_year = 2017
 
-# (4) Name the time window as a string 
-name_of_window = 'Winter WY2017'
+# (4) Define the time window you want to average over
+# (5) Time window labels for plot title and figure names
+if 1:
+    time_window = ['%d-10-01' % (water_year - 1), '%d-01-01' % water_year] 
+    figure_title = 'WY%s: Oct, Nov, Dec' % water_year
+    figure_label = 'Seasonal_01'
+elif 1:
+    time_window = ['%d-01-01' % water_year, '%d-04-01' % water_year] 
+    figure_title = 'WY%s: Jan, Feb, Mar' % water_year
+    figure_label = 'Seasonal_02'
+elif 1:    
+    time_window = ['%d-04-01' % water_year, '%d-07-01' % water_year] 
+    figure_title = 'WY%s: Apr, May, Jun' % water_year
+    figure_label = 'Seasonal_03'
+elif 1:
+    time_window = ['%d-07-01' % water_year, '%d-10-01' % water_year] 
+    figure_title = 'WY%s: Jul, Aug,Sep' % water_year
+    figure_label = 'Seasonal_04'
+
+
 
 
 
@@ -75,12 +93,15 @@ name_of_window = 'Winter WY2017'
 # Now the script is taking over 
 # -------------------------------------------------------------------
 #  (0) Figure out the name of the csv we want to read, and convert file path depending on computer this script is run on.
-csv = r'h:\hpcshared\NMS_Projects\Control_Volume_Analysis\Balance_Tables\%s\Balance_Table_By_Group_Composite_Parameter_N-Diat.csv' % run_name
+csv = r'%s:\hpcshared\NMS_Projects\Control_Volume_Analysis\Balance_Tables\%s\Balance_Table_By_Group_Composite_Parameter_N-Diat.csv' % (windir, run_name)
 csv = local2hpc(csv)
 
 # (1) Come up with the output file name 
-plot_dir = r'h:\hpcshared\NMS_Projects\Control_Volume_Analysis\Plots\%s\\' % water_year
-out_fn = plot_dir + 'FlowChart_N-Diat_%s_%s.png' % (name_of_window, run_name)
+plot_dir = r'%s:\hpcshared\NMS_Projects\Control_Volume_Analysis\Plots\%s' % (windir, run_name) # alliek -- change plot folder from water year to run id
+plot_dir = local2hpc(plot_dir)
+if not os.path.exists(plot_dir):
+    os.makedirs(plot_dir)   # getting a permission error, need to make directory by hand for now
+out_fn = os.path.join(plot_dir,'FlowChart_N-Diat_%s_%s.png' % (run_name, figure_label))
 out_fn = local2hpc(out_fn)
 print('Output will be saved as %s\n' % out_fn)
 
@@ -110,13 +131,38 @@ data['Date'] = pd.to_datetime(data.time)
 time_start, time_end = pd.to_datetime(time_window[0]), pd.to_datetime(time_window[1])
 indt = np.logical_and(data['Date']>=time_start, data['Date']<time_end)
 
-# Time scales (should always be positive)
-data['rx_timescale']        = abs(data['N-Diat,Mass (Mg)'] / data['N-Diat,Net Reaction (Mg/d)'] ) 
-data['transport_timescale'] = abs(data['N-Diat,Mass (Mg)'] / data['N-Diat,Net Flux In (Mg/d)']  )
+## note from alliek: to calculate time scales, we need to take the time average first, also we should only count outflows for transport time ... save for later
+## Time scales (should always be positive)
+#data['rx_timescale']        = abs(data['N-Diat,Mass (Mg)'] / data['N-Diat,Net Reaction (Mg/d)'] ) 
+#data['transport_timescale'] = abs(data['N-Diat,Mass (Mg)'] / data['N-Diat,Net Flux In (Mg/d)']  )
 
 # Grab selection of data during data range, group by CV & average
 data_sel = data.loc[indt]
 data_sel = data_sel.groupby(['group']).mean()
+
+# now that we have taken time average, can compute reaction time scale
+data_sel['rx_timescale'] = np.abs(data_sel['N-Diat,Mass (Mg)'] / data_sel['N-Diat,Net Reaction (Mg/d)'] ) 
+
+# To compute transport time scale upper bound, need to look at N/S/E/W sides and add up the fluxes that are out only 
+# ... first convert inflow to outflow for each side of the  control volume
+Q_N = -data_sel['N-Diat,Flux In from N (Mg/d)'].values
+Q_S = -data_sel['N-Diat,Flux In from S (Mg/d)'].values
+Q_E = -data_sel['N-Diat,Flux In from E (Mg/d)'].values
+Q_W = -data_sel['N-Diat,Flux In from W (Mg/d)'].values
+# ... for each side of the control volume, compute a factor "F" that equals 1 when Q is positive (out) and 0 when Q is negative (ind)
+F_N = 0.5*np.divide(np.abs(Q_N) + Q_N, np.abs(Q_N))
+F_S = 0.5*np.divide(np.abs(Q_S) + Q_S, np.abs(Q_S))
+F_E = 0.5*np.divide(np.abs(Q_E) + Q_E, np.abs(Q_E))
+F_W = 0.5*np.divide(np.abs(Q_W) + Q_W, np.abs(Q_W))
+# ... note this formula for F returns NaN when Q is zero... replace NaNs with zeros
+F_N[np.isnan(F_N)] = 0
+F_S[np.isnan(F_S)] = 0
+F_E[np.isnan(F_E)] = 0
+F_W[np.isnan(F_W)] = 0
+# ... now coupute the total outflow by adding up outflow through all the sides ... F will zero out inflows and multply outflows by 1
+Q_out = F_N*Q_N + F_S*Q_S + F_E*Q_E + F_W*Q_W
+# ... finally use total outflow to compute upper bound on transport time scale / flushing time
+data_sel['transport_timescale'] = np.abs(data_sel['N-Diat,Mass (Mg)'] / Q_out  )
 
 
 
@@ -147,6 +193,7 @@ data_sel = data_sel.groupby(['group']).mean()
 # goes in the text boxes. We are going to loop through all the CVs and 
 # add text data on each volume. The data is stored in a list.
 cv_groups_data = []
+LJ = 16
 for group in cv_groups: 
     #     text = r'$\bf{Group~%s}$' % group + '\n'
 
@@ -155,37 +202,36 @@ for group in cv_groups:
     
     # MASS OF N-Diat
     mass = data_group['N-Diat,Mass (Mg)']
-    text += 'N-Diat Mass = %3.1f Mg\n' % (mass)
+    text += 'N-Diat Mass'.ljust(LJ) + ' = %5.0f Mg\n' % (mass)
     
+    # LOADING (IF APPLICABLE)
+    load    = data_group['N-Diat,Net Load (Mg/d)']
+    text += 'Loading'.ljust(LJ) + ' = %5.2f Mg/d\n' % (load)
+
+    # Primary Production 
+    dpp  = data_group['N-Diat,dPPDiat + N-Diat,dcPPDiat (Mg/d)']
+    text += 'DPP'.ljust(LJ) + ' = %5.2f Mg/d\n' % (dpp)
+    
+    # MORTALITY 
+    mortality = data_group['N-Diat,dMrtDiat (Mg/d)']
+    text += 'Mortality'.ljust(LJ) + ' = %5.2f Mg/d\n' % (mortality)
+    
+    # GRAZING BY ZOOPLANKTON 
+    grazing = data_group['N-Diat,dZ_Diat (Mg/d)']
+    text += 'Grazing by Zoop.'.ljust(LJ) + ' = %5.2f Mg/d\n' % (grazing)
+    
+    # LOSS / DENITRIFICATION
+    settling   = data_group['N-Diat,dSedDiat (Mg/d)']  
+    text += 'Settling'.ljust(LJ) + ' = %5.2f Mg/d\n' % (settling)
+
     # NET REACTION
     netrx   = data_group['N-Diat,Net Reaction (Mg/d)']
-    text += 'Net Rx = %3.1f\n' % (netrx) # get_sign(netrx),
+    text += 'Net Reaction'.ljust(LJ) + ' = %5.2f Mg/d\n' % (netrx) # get_sign(netrx),
          
     # TIME SCALES 
     rx_timescale = data_group['rx_timescale']
     transport_timescale   = data_group['transport_timescale']
-    text += '$T_{rx}$ = %3.1f, $T_{transport}$ = %3.1f \n' % (rx_timescale, transport_timescale)
-    
-    # LOADING (IF APPLICABLE)
-    load    = data_group['N-Diat,Net Load (Mg/d)']
-    if load>0:
-        text += 'LoaN-Diatg = %3.1f\n' % (load)
-        
-    # Primary Production 
-    dpp  = data_group['N-Diat,dPPDiat + N-Diat,dcPPDiat (Mg/d)']
-    text += 'DPP = %3.1f\n' % (dpp)
-    
-    # MORTALITY 
-    mortality = data_group['N-Diat,dMrtDiat (Mg/d)']
-    text += 'Mortality = %3.1f\n' % (mortality)
-    
-    # GRAZING BY ZOOPLANKTON 
-    grazing = data_group['N-Diat,dZ_Diat (Mg/d)']
-    text += 'Grazing by Zoop. = %3.1f\n' % (grazing)
-    
-    # LOSS / DENITRIFICATION
-    settling   = data_group['N-Diat,dSedDiat (Mg/d)']  
-    text += 'Settling = %3.1f' % (settling)
+    text += '$t_{rx}$ = %0.1f d, $t_{transp}$ < %0.1f d' % (rx_timescale, transport_timescale)
 
     cv_groups_data.append(text)
         
@@ -207,7 +253,7 @@ for group in cv_groups:
         data_group = data_sel.loc[group]
         west = data_group['N-Diat,Flux In from W (Mg/d)']
         # text = '%3.0f' % (abs(west)) 
-        text = '%.0f' % (abs(west)) 
+        text = '%.1f' % (abs(west)) 
         flux_west.append(text)
         if west<0: # If the flux in from the west is NEGATIVE, the CV is exporting N-Diat to the EAST
             west_flux_dir.append('larrow')
@@ -221,7 +267,7 @@ for group in cv_groups:
     data_group = data_sel.loc[group]
     north = data_group['N-Diat,Flux In from N (Mg/d)']
     # text = '%3.0f' % (abs(north))
-    text = '%.0f' % (abs(north)) 
+    text = '%.1f' % (abs(north)) 
 
     flux_north.append(text)
     if north<0:  # If the flux in from the north is NEGATIVE, the CV is exporting N-Diat NORTHWARD
@@ -235,7 +281,7 @@ for group in cv_groups[8:]:
     data_group = data_sel.loc[group]
     south = data_group['N-Diat,Flux In from S (Mg/d)']
     # text = '%3.0f' % (abs(south))
-    text = '%.2f' % (abs(south)) 
+    text = '%.1f' % (abs(south)) 
 
     flux_north_bottom_row.append(text)
     if south>0:  # If the flux in from the south is POSITIVE, the flux arrow needs to be NORTHWARD (into the CV)
@@ -249,14 +295,15 @@ for group in cv_groups[8:]:
     
     
 
-fig = plt.figure(figsize = (13,7.5))
+#fig = plt.figure(figsize = (13,7.5))
+fig = plt.figure(figsize = (15.6,9))
 ax = plt.gca() 
 ax.xaxis.set_visible(0)
 ax.yaxis.set_visible(0)
 ax.set_frame_on(False)
 # print(plt.rcParams)
 
-ax.set_title('N-Diat in South Bay, %s' % name_of_window, fontsize = 15)
+ax.set_title('N-Diat in South Bay, %s' % figure_title, fontsize = 15)
 ttl = ax.title 
 ttl.set_position([.5, 1.1])
 
@@ -308,7 +355,7 @@ for r in range(nrow):
     for c in range(1,ncol):
         x = (0 + space_between*(c) + (plot_size*c))
         t = ax.text(x, y, 
-                    flux_west[k], 
+                    flux_west[k] + '\nMg/d', 
                     ha="center", 
                     va="center", 
                     rotation=0,
@@ -327,7 +374,7 @@ for r in range(nrow):
     for c in range(0,ncol):
         x = (0 + space_between*(c+2.2) + (plot_size*c))
         t = ax.text(x, y, 
-                    flux_north[k], 
+                    flux_north[k] + '\nMg/d', 
                     ha="center", 
                     va="center", 
                     rotation=north_flux_rotation[k],
@@ -349,7 +396,7 @@ for c in range(0,ncol):
         continue 
     x = (0 + space_between*(c+2.2) + (plot_size*c))
     t = ax.text(x, y, 
-                flux_north_bottom_row[k], 
+                flux_north_bottom_row[k] + '\nMg/d', 
                 ha="center", 
                 va="center", 
                 rotation=flux_north_bottom_row_rotation[k],
