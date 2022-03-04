@@ -11,7 +11,7 @@
 # directory containting balance tables, including path. note if there are multiple runs,
 # there is another layer of run folders inside this directory before the actual balance tables
 # water_year = 'WY2018'
-run_folders = ['FR13_003']
+run_folders = ['FR18_003']
 # output directory, including path
 output_dir = '/richmondvol1/hpcshared/NMS_Projects/Control_Volume_Analysis/Balance_Tables/'
 
