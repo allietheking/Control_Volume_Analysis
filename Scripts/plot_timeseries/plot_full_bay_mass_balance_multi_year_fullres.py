@@ -2,12 +2,13 @@
 
 Use new "Whole_Bay" group to work up budget
 
-This creates a stack plot where positive is:
+This creates a four panel plot with the following panels
 - bay-wide DIN Loading
-- Delta influx (this is the net flux in from the W)
-and negative is:
-- net DIN assimilation (this is the net Rx term)
-- outflux throguh Golden Gate (this is the negative of net flux in from the E)
+- Delta influx (net flux in from the W)
+- assimilation (net Rx term)
+- outflux throguh Golden Gate (net flux in from the E)
+
+Multiple water years are plotted together, based on full resoluation runs
 
 '''
 

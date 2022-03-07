@@ -11,11 +11,11 @@
 # directory containting balance tables, including path. note if there are multiple runs,
 # there is another layer of run folders inside this directory before the actual balance tables
 # water_year = 'WY2018'
-run_folders = ['FR18_003']
+run_folders = ['G141_13to18_88']
 # output directory, including path
 output_dir = '/richmondvol1/hpcshared/NMS_Projects/Control_Volume_Analysis/Balance_Tables/'
 
-FR = True 
+FR = False
 
 
 # list of run subfolders inside the directory defined above (if there is only one run and thus no 
@@ -30,10 +30,14 @@ FR = True
 # group_connectivity_file = '/hpcvol1/hpcshared/Scripts/Postprocessors/Control_Volume/connectivity_definitions_141.txt'
 
 
-# for FR Runs (includes new segments ...)
+# for FR Runs (includes new segments defined by sienna and whole bay added by allie...)
 if FR:
     group_definition_file   = '../../Control_Volume_Definitions/control_volume_definitions_FR.txt'
     group_connectivity_file = '../../Control_Volume_Definitions/connectivity_definitions_FR.txt'
+# for AGG runs (includs now whole bay group added by allie)
+else:
+    group_definition_file   = '../../Control_Volume_Definitions/control_volume_definitions_141.txt'
+    group_connectivity_file = '../../Control_Volume_Definitions/connectivity_definitions_141.txt'
 
 # list of balance table csv files, including paths, evaluated at the original control 
 # volume level, to read in and compile into groups 

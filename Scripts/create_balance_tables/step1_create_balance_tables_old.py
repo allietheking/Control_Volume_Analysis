@@ -191,33 +191,33 @@ for run_folder in run_folders:
         deltat_P = (varP.time[1]-varP.time[0]).values
         deltat_T = (varT.time[1]-varT.time[0]).values
         deltat_B = (varP_bal.time[1]-varP_bal.time[0]).values
-        # ... if polygon output is less than daily, resample onto daily axis (take instantaneous snapshots)
-        if deltat_P<np.timedelta64(1,'D'):
+        # ... polygon output is instantaneous
+        if deltat_P==np.timedelta64(3600000000000):
             varP = varP.resample(time='D').nearest()
-        elif deltat_P==np.timedelta64(1,'D'):
+        elif deltat_P==np.timedelta64(86400000000000):
             pass
         else:
-            raise Exception('ERROR: his file has time step greater than one day')
+            raise Exception('ERROR: his file must have daily or hourly output time stamp')
         # ... transect output should be integrated in time, bizarrely the integral is open on the 
         # ... left and closed on the right, i.e., integral is from 0<t<=T. note the time ends up shifted
         # ... so add a day to it
-        if deltat_T<np.timedelta64(1,'D'):
+        if deltat_T==np.timedelta64(3600000000000):
             varT = varT.resample(time='D',closed='right').sum(axis=0)[0:-1,:]
-            varT['time'] = varT['time'] + np.timedelta64(1,'D')
-        elif deltat_T==np.timedelta64(1,'D'):
+            varT['time'] = varT['time'] + np.timedelta64(86400000000000,'ns')
+        elif deltat_T==np.timedelta64(86400000000000):
             pass
         else:
-            raise Exception('ERROR: his file has time step greater than one day')
+            raise Exception('ERROR: his file must have daily or hourly output time stamp')
         # ... balance output should be integrated in time, bizarrely the integral is open on the 
         # ... left and closed on the right, i.e., integral is from 0<t<=T. note the time ends up shifted
         # ... so add a day to it
-        if deltat_B<np.timedelta64(1,'D'):
+        if deltat_B==np.timedelta64(3600000000000):
             varP_bal = varP_bal.resample(time='D').sum(axis=0)[0:-1,:]
-            varP_bal['time'] = varP_bal['time'] + np.timedelta64(1,'D')
-        elif deltat_B==np.timedelta64(1,'D'):
+            varP_bal['time'] = varP_bal['time'] + np.timedelta64(86400000000000,'ns')
+        elif deltat_B==np.timedelta64(86400000000000):
             pass
         else:
-            raise Exception('ERROR: his-bal file  as time step greater than one day')
+            raise Exception('ERROR: his-bal file must have daily or hourly output time stamp')
         
         # now make sure polygon, transect, and balance data have same number of time steps (this 
         # condition may be violated in case of incomplete simulation)
