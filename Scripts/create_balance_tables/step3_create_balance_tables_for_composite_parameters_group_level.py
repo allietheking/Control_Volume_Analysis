@@ -12,7 +12,10 @@ constituents and reaction groupings.
 
 # directory containting balance tables, including path. note if there are multiple runs,
 # there is another layer of run folders inside this directory before the actual balance tables
-run_folders = ['G141_13to18_88']
+#run_folders = ['G141_13to18_125'] 
+#run_folders = ['FR13_021'] 
+#run_folders = ['FR17_014'] 
+run_folders = ['FR18_004'] 
 # output directory, including path
 output_dir = '/richmondvol1/hpcshared/NMS_Projects/Control_Volume_Analysis/Balance_Tables/'
 

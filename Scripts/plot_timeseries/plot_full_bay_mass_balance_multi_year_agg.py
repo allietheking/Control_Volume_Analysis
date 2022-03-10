@@ -30,10 +30,10 @@ from scipy import signal
 ## user input
 #########################################################################################
 
-wy_list = [2013,2017,2018]
-run2plot_list = ['FR13_021','FR17_014','FR18_004']
-fig_suff = '_FR13_021_FR17_014_FR18_004'
-title_annotation = '\nFull Resolution Model: FR13_021, FR17_014, FR18_004'
+wy_list = [2013,2014,2015,2016,2017,2018]
+run2plot_list = ['G141_13to18_125','G141_13to18_125','G141_13to18_125','G141_13to18_125','G141_13to18_125','G141_13to18_125']
+fig_suff = 'G141_13to18_125'
+title_annotation = '\nAggregated Model: G141_13to18_125'
 
 ## composite parameter (must match suffix of balance table)
 param = 'TN'

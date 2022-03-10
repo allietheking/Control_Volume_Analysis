@@ -11,9 +11,9 @@ environment by executing the following from the command line:
 ### USER INPUT
 ################
 
-run_folders = ['G141_13to18_88']
+run_folders = ['FR18_004']
 water_year = 'WY2018'
-FR = False
+FR = True
 
 
 # output directory, including path

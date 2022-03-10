@@ -30,16 +30,17 @@ from scipy import signal
 ## user input
 #########################################################################################
 
-wy_list = [2013,2017,2018]
-run2plot_list = ['FR13_021','FR17_014','FR18_004']
-fig_suff = '_FR13_021_FR17_014_FR18_004'
-title_annotation = '\nFull Resolution Model: FR13_021, FR17_014, FR18_004'
+wy_list = [2018,2018]
+run2plot_list = ['FR18_004','G141_13to18_125']
+legend_entries = ['Full Resolution (%s)' % run2plot_list[0],'Aggregated (%s)' % run2plot_list[1]]
+fig_suff = run2plot_list[0] + '_' + run2plot_list[1]
+title_annotation = '\nWY2018'
 
 ## composite parameter (must match suffix of balance table)
 param = 'TN'
 
 ## output plot directory
-out_dir = r'X:\hpcshared\NMS_Projects\Control_Volume_Analysis\Plots\Compare_Water_Years'
+out_dir = r'X:\hpcshared\NMS_Projects\Control_Volume_Analysis\Plots\G141_13to18_125'
 
 ## here's a colorblind friendly color cycle
 cfc = ['#377eb8', '#ff7f00', '#4daf4a',
@@ -110,6 +111,7 @@ for iwy in range(len(wy_list)):
 
     wy = wy_list[iwy]
     run2plot = run2plot_list[iwy]
+    legend_entry = legend_entries[iwy]
 
     ## balance table folder
     table_dir = r'X:\hpcshared\NMS_Projects\Control_Volume_Analysis\Balance_Tables\%s' % run2plot
@@ -155,19 +157,19 @@ for iwy in range(len(wy_list)):
         data_cum[col] = np.cumsum(data[col]) * deltat
 
     # plot cumulative
-    ax0[0].plot(data_cum['time']-t_window[0]+ts,data_cum['%s,Net Load (Mg/d)' % param]/1000 + data_cum['%s,Flux In from E (Mg/d)' % param]/1000,label=water_year)
-    ax0[1].plot(data_cum['time']-t_window[0]+ts,-data_cum['%s,Net Reaction (Mg/d)' % param]/1000,label=water_year)
-    ax0[2].plot(data_cum['time']-t_window[0]+ts,-data_cum['%s,Flux In from W (Mg/d)' % param]/1000,label=water_year)
+    ax0[0].plot(data_cum['time']-t_window[0]+ts,data_cum['%s,Net Load (Mg/d)' % param]/1000 + data_cum['%s,Flux In from E (Mg/d)' % param]/1000,label=legend_entry)
+    ax0[1].plot(data_cum['time']-t_window[0]+ts,-data_cum['%s,Net Reaction (Mg/d)' % param]/1000,label=legend_entry)
+    ax0[2].plot(data_cum['time']-t_window[0]+ts,-data_cum['%s,Flux In from W (Mg/d)' % param]/1000,label=legend_entry)
     
     # plot tidally filtered
-    ax1[0].plot(data_tfi['time']-t_window[0]+ts,data_tfi['%s,Net Load (Mg/d)' % param] + data_tfi['%s,Flux In from E (Mg/d)' % param],label=water_year)
-    ax1[1].plot(data_tfi['time']-t_window[0]+ts,-data_tfi['%s,Net Reaction (Mg/d)' % param],label=water_year)
-    ax1[2].plot(data_tfi['time']-t_window[0]+ts,-data_tfi['%s,Flux In from W (Mg/d)' % param],label=water_year)
+    ax1[0].plot(data_tfi['time']-t_window[0]+ts,data_tfi['%s,Net Load (Mg/d)' % param] + data_tfi['%s,Flux In from E (Mg/d)' % param],label=legend_entry)
+    ax1[1].plot(data_tfi['time']-t_window[0]+ts,-data_tfi['%s,Net Reaction (Mg/d)' % param],label=legend_entry)
+    ax1[2].plot(data_tfi['time']-t_window[0]+ts,-data_tfi['%s,Flux In from W (Mg/d)' % param],label=legend_entry)
 
     # plot daily
-    ax2[0].plot(data['time']-t_window[0]+ts,data['%s,Net Load (Mg/d)' % param] + data['%s,Flux In from E (Mg/d)' % param],label=water_year)
-    ax2[1].plot(data['time']-t_window[0]+ts,-data['%s,Net Reaction (Mg/d)' % param],label=water_year)
-    ax2[2].plot(data['time']-t_window[0]+ts,-data['%s,Flux In from W (Mg/d)' % param],label=water_year)
+    ax2[0].plot(data['time']-t_window[0]+ts,data['%s,Net Load (Mg/d)' % param] + data['%s,Flux In from E (Mg/d)' % param],label=legend_entry)
+    ax2[1].plot(data['time']-t_window[0]+ts,-data['%s,Net Reaction (Mg/d)' % param],label=legend_entry)
+    ax2[2].plot(data['time']-t_window[0]+ts,-data['%s,Flux In from W (Mg/d)' % param],label=legend_entry)
 
 # clean up the axes, add labels, legend, titles, grid, etc.
 for (ax, units) in zip([ax0,ax1,ax2], ['\n(10$^9$g/d)', '\n(Mg/d)', '\n(Mg/d)']):
