@@ -27,8 +27,12 @@ run_ID = 'FR18_004'
 # water year
 water_year = 2018
 
+# averaging window
+time_avg = 'Monthly'
+#time_avg = 'Seasonal'
+
 # time period for averaging, figure names, figure titles
-if 1:
+if time_avg=='Monthly':
     start_time_list = [np.datetime64('%d-10-01' % (water_year-1)),
                    np.datetime64('%d-11-01' % (water_year-1)),
                    np.datetime64('%d-12-01' % (water_year-1)),
@@ -66,7 +70,8 @@ if 1:
                      'WY%d Jul' % water_year,
                      'WY%d Aug' % water_year,
                      'WY%d Sep' % water_year]
-else:    
+
+elif time_avg=='Seasonal': 
     start_time_list = [np.datetime64('%d-10-01' % (water_year-1)),
                    np.datetime64('%d-01-01' % water_year),
                    np.datetime64('%d-04-01' % water_year),
@@ -277,8 +282,7 @@ for iwindow in range(len(start_time_list)):
     # create the map
     fig, ax = plt.subplots(figsize=figsize)
     shp.iloc[iplot].plot(ax=ax, color = map_color)
-    shp.iloc[iplot].boundary.plot(ax=ax, color=boundary_color)
-
+    
     # add transport, loading, and reaction arrows
     for i in range(len(transport)):
         area = transport[i]*arrow_scale
@@ -324,3 +328,4 @@ for iwindow in range(len(start_time_list)):
     fig.tight_layout()
     fig.savefig(os.path.join(figure_path,figure_fn))
     
+    plt.close('all')

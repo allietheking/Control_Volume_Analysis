@@ -19,10 +19,11 @@ import itertools
 # composite parameters -- for each parameter, include a stoiciometric multiplier;
 # for example for diatoms, the fraction contributing to nitrogen is 0.14,
 # so when computing total nitrogen, need to multiply diatom masses by 0.14
-composite_parameters = {'TN'  : [[1,'NH4'], [1,'NO3'], [1,'DON'], [1,'PON1'], [0.15,'Diat'], [0.1818,'Zoopl_V'], [0.1818,'Zoopl_R'], [0.1818,'Zoopl_E']]}
+composite_parameters = {'TN'  : [[1,'NH4'], [1,'NO3'], [1,'DON'], [1,'PON1'], [0.16,'Diat'], [0.16,'Green'], [0.1818,'Zoopl_V'], [0.1818,'Zoopl_R'], [0.1818,'Zoopl_E']]}
  
 # input file -- balance table for raw parameters, aggregated into groups
-input_balance_table_filename = 'Balance_Tables/Balance_Table_All_Parameters_By_Group.csv'
+#input_balance_table_filename = r'X:\hpcshared\NMS_Projects\Control_Volume_Analysis\Balance_Tables\FR18_004\Balance_Table_All_Parameters_By_Group.csv'
+input_balance_table_filename = '/richmondvol1/hpcshared/NMS_Projects/Control_Volume_Analysis/Balance_Tables/FR18_004/Balance_Table_All_Parameters_By_Group.csv'
 
 # define zero
 zero_cut = 0.00001
@@ -69,18 +70,24 @@ for mult, param in zip(mult_list, param_list):
 #                 'NO3,dDenitWat (Mg/d)',
 #                 'NO3,dDenitSed (Mg/d)'], inplace=True)
 # delete the columns we already know to be sources and sinks
-df.drop(columns=['NH4,dMinDetNS1 (Mg/d)', # source for TN
-                 'NH4,dMinDetNS2 (Mg/d)', # source for TN
-                 'NH4,dNH4Upt (Mg/d)', # part of uptake balance
-                 'NO3,dDenitWat (Mg/d)', # sink for TN
-                 'NO3,dDenitSed (Mg/d)', # sink for TN
-                 'NO3,dNO3Upt (Mg/d)', # part of uptake balance
-                 'PON1,dSedPON1 (Mg/d)', # sink for TN 
-                 'PON1,dResS1DetN (Mg/d)', # source for TN
-                 'PON1,dResS2DetN (Mg/d)', # source for TN
-                 'Diat,dSedDiat (Mg/d)', # flagged by exploratory algorithm v1
+
+                                    
+
+
+
+df.drop(columns=['Diat,dSedDiat (Mg/d)', # flagged by exploratory algorithm in v1
                  'Diat,dPPDiat (Mg/d)', # part of uptake balance
-                 'Diat,dcPPDiat (Mg/d)'], # part of uptake balance
+                 'Diat,dcPPDiat (Mg/d)', # part of uptake balance
+                 'Green,dSedGreen (Mg/d)', # should act the same as diatoms
+                 'Green,dPPGreen (Mg/d)', # part of uptake balance
+                 'Green,dcPPGreen (Mg/d)', # part of the uptake balance
+                 'NO3,dDenitWat (Mg/d)', # this should be a SINK for TN
+                 'NO3,dDenitSed (Mg/d)', # this should be a SINK for TN
+                 'NO3,dNO3Upt (Mg/d)', # part of the uptake balance
+                 'NH4,dMinDetNS1 (Mg/d)', # this should be a SOURCE for TN
+                 'NH4,dMinDetNS2 (Mg/d)', # this should be a SOURCE for TN
+                 'NH4,dNH4Upt (Mg/d)', #part of the uptake balance
+                 'PON1,dSedPON1 (Mg/d)'], # this should be a SINK for TN
                  inplace=True) 
 columns = list(df.columns)
 Nc = len(columns)
@@ -91,7 +98,7 @@ if not any(df.sum(axis=1).abs()>zero_cut):
 
 # try eliminating sets of n reaction terms for n = 1, 2, 3, ... 
 n = -1
-while n < 6:
+while n < 8:
     n = n + 1
     print('Trying sets of additional sources/sinks of length n = %d' % n)
     for col_ind_set in itertools.combinations(range(Nc), n):

@@ -39,7 +39,7 @@ pdffile = '/hpcvol1/hpcshared/Full_res/Control_Volume_Analysis/%s/%s/%s_%s.pdf' 
 
 # Read in the shapefile 
 polys   = gpd.read_file(r'/hpcvol1/hpcshared/inputs/shapefiles/Agg_mod_contiguous_plus_subembayments_shoal_channel.shp')
-agg     = gpd.read_file(r'/hpcvol1/siennaw/control_volume/make_new_CV/AGG_GROUPS.shp') 
+agg     = gpd.read_file(r'/hpcvol1/siennaw/control_volume/make_new_CV/AGG_GROUPS.shp')  
 
 #################################
 # /// Read in different rates /// 

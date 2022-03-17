@@ -11,15 +11,15 @@
 # directory containting balance tables, including path. note if there are multiple runs,
 # there is another layer of run folders inside this directory before the actual balance tables
 # water_year = 'WY2018'
-run_folders = ['G141_13to18_125'] 
+#run_folders = ['G141_13to18_125'] 
 #run_folders = ['FR13_021'] 
 #run_folders = ['FR17_014'] 
-#run_folders = ['FR18_004'] 
+run_folders = ['FR17_003'] 
 # output directory, including path
 output_dir = '/richmondvol1/hpcshared/NMS_Projects/Control_Volume_Analysis/Balance_Tables/'
 
-FR = False
-
+# is full resolution?
+FR=True
 
 # list of run subfolders inside the directory defined above (if there is only one run and thus no 
 # subfolders, set run_folders = [''])
@@ -46,6 +46,7 @@ else:
 # volume level, to read in and compile into groups 
 balance_table_list = [
     'diat_Table.csv',
+    'green_Table.csv',
     'zoopl_v_Table.csv',
     'zoopl_r_Table.csv',
     'zoopl_e_Table.csv',
@@ -132,8 +133,14 @@ for run_folder in run_folders:
     Nparams = len(balance_table_input)
     df_params = []
     for balance_table_file in balance_table_input:
-        df = pd.read_csv(balance_table_file)
-        df_params.append(df)
+
+        try:
+            df = pd.read_csv(balance_table_file)
+        except:
+            print('error reading %s, skipping this one ...' % balance_table_file)
+            Nparams = Nparams - 1
+        else:
+            df_params.append(df)
     
     # convert time stamp strings to datetime objects, noting that for some reason the format of the 
     # time stamp strings is different in different balance tables -- sometimes Y-M-D and sometimes M/D/Y,
