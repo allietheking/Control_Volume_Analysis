@@ -158,7 +158,6 @@ for i in range(4):
 for i in range(4):
     ax[i].set_xticks(X)
     ax[i].set_xticklabels(group_labels)
-ax[1].legend()
 
 # label the y axes and title
 ax[0].set_ylabel('Loading (Mg/d)')
@@ -179,8 +178,10 @@ if same_y_range:
         ymax1 = ymax*yrange/(ymax-ymin)
         ax[i].set_ylim((ymin1,ymax1))
 
+# add legend, tight layout, save
+ax[3].legend(bbox_to_anchor=(0.5, -0.35), loc='upper center', ncol=nbars)
+fig.tight_layout()
 fig.savefig(figure_fn)
-
 
 #input_fn = os.path.join(input_path, run_ID, 'Balance_Table_By_Group_Composite_Parameter_%s.csv' % param)
 

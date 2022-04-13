@@ -8,9 +8,9 @@ up to the user.
 
 @author: siennaw
 """
-
-water_year  = 'WY2013'
-run_name    = 'FR13_003'
+# h:\hpcshared\NMS_Projects\Control_Volume_Analysis\Balance_Tables\FR17_003\
+water_year  = 'WY2017'
+run_name    = 'FR17_003'
 pdf_label   = 'Sett_DNit_Map'
 interval = 7    # Interval (#days between each plot)
 
@@ -35,42 +35,43 @@ except:
           'and then re-launch Python.\n')
 
 # Make PDF file name     
-pdffile = '/hpcvol1/hpcshared/Full_res/Control_Volume_Analysis/%s/%s/%s_%s.pdf' % (water_year, run_name, pdf_label, run_name)
+pdffile = '/richmondvol1/hpcshared/NMS_Projects/Control_Volume_Analysis/Plots/%s/%s_%s.pdf' % (run_name, pdf_label, run_name)
 
 # Read in the shapefile 
-polys   = gpd.read_file(r'/hpcvol1/hpcshared/inputs/shapefiles/Agg_mod_contiguous_plus_subembayments_shoal_channel.shp')
-agg     = gpd.read_file(r'/hpcvol1/siennaw/control_volume/make_new_CV/AGG_GROUPS.shp')  
+polys   = gpd.read_file(r'/richmondvol1/hpcshared/inputs/shapefiles/Agg_mod_contiguous_plus_subembayments_shoal_channel.shp')
+agg     = gpd.read_file(r'/richmondvol1/hpcshared/NMS_Projects/Control_Volume_Analysis/Definitions/shapefiles/AggregatedControlVolumes.shp')  
+
 
 #################################
 # /// Read in different rates /// 
 ################################# 
 # Primary production / production rate
-primary_table = pd.read_csv(r'/hpcvol1/hpcshared/Full_res/Control_Volume_Analysis/%s/%s/diat_Table.csv' % (water_year, run_name))
+primary_table = pd.read_csv(r'/richmondvol1/hpcshared/NMS_Projects/Control_Volume_Analysis/Balance_Tables/%s/diat_Table.csv' % (run_name))
 primary_table['SUB'] = primary_table['Diat,dPPDiat']
 pri_label = 'Primary Production (dPPDiat), g/m$^3$/day'
 
 # Dentrification 
-denit_table = pd.read_csv(r'/hpcvol1/hpcshared/Full_res/Control_Volume_Analysis/%s/%s/no3_Table.csv' % (water_year, run_name))
+denit_table = pd.read_csv(r'/richmondvol1/hpcshared/NMS_Projects/Control_Volume_Analysis/Balance_Tables/%s/no3_Table.csv' % (run_name))
 denit_table['SUB'] =  denit_table['NO3,dDenitWat'] + denit_table['NO3,dDenitSed']
 denit_label = 'Nitrogen loss through denitrification, g/m$^3$/day'
 
 
 # Settling of organic matter --> composite, so a little trickier 
-pon1_table      = pd.read_csv(r'/hpcvol1/hpcshared/Full_res/Control_Volume_Analysis/%s/%s/pon1_Table.csv' % (water_year, run_name))
+pon1_table      = pd.read_csv(r'/richmondvol1/hpcshared/NMS_Projects/Control_Volume_Analysis/Balance_Tables/%s/pon1_Table.csv' % (run_name))
 settling_table  = pon1_table.merge(primary_table, on = ['time', 'Control Volume', 'Volume']) 
 settling_table['SUB'] = settling_table['Diat,dSedDiat']*0.15 + settling_table['PON1,dSedPON1']
 sett_label = 'Settling organic matter (N-diat + PON1), g/m$^3$/day'
 
 # # Nitrification
-# table   = pd.read_csv(r'/hpcvol1/hpcshared/Full_res/Control_Volume_Analysis/WY2017/FR17_003/nh4_Table.csv')
+# table   = pd.read_csv(r'/richmondvol1/hpcshared/Full_res/Control_Volume_Analysis/WY2017/FR17_003/nh4_Table.csv')
 # SUB     = 'NH4,dNitrif'
 # label   = 'Nitrification, mg/m$^3$/day'
-# pdffile = '/hpcvol1/hpcshared/Full_res/Control_Volume_Analysis/WY2017/FR17_003/nitrification_map_17.pdf'
+# pdffile = '/richmondvol1/hpcshared/Full_res/Control_Volume_Analysis/WY2017/FR17_003/nitrification_map_17.pdf'
 
-# Calculate residence time 
-cont  = pd.read_csv(r'/hpcvol1/hpcshared/Full_res/Control_Volume_Analysis/%s/%s/continuity_Table.csv' % (water_year, run_name))
-cont['Net'] = cont['Continuity,Transp out'] + cont['Continuity,Transp in']
-cont['ResTime'] =  np.abs(cont['Net'] / cont['Volume']) * 24 # Residence time in hours
+# # Calculate residence time 
+# cont  = pd.read_csv(r'/richmondvol1/hpcshared/Full_res/Control_Volume_Analysis/%s/%s/continuity_Table.csv' % (water_year, run_name))
+# cont['Net'] = cont['Continuity,Transp out'] + cont['Continuity,Transp in']
+# cont['ResTime'] =  np.abs(cont['Net'] / cont['Volume']) * 24 # Residence time in hours
 
 
 # We just want the first 146 polygons (the other are weird aggregated, larger polygons)
@@ -158,7 +159,7 @@ ax[2].autoscale_view()
 # Set colormaps for each axis
 p0.set_cmap('Spectral_r')
 p1.set_cmap('Spectral_r')
-p2.set_cmap('summer_r')
+p2.set_cmap('Spectral_r')
  
 # Fixed max values for each substance #<<<<<<<<< customize ! 
 MAXtime = 8 
@@ -193,7 +194,7 @@ with PdfPages(pdffile) as pdf:
             sett , _ = load_substance(settling_table,date, 'SUB')
             
             # Extract residence time 
-            cont_values = cont.loc[cont.time == date,['Control Volume','ResTime']]
+            # cont_values = cont.loc[cont.time == date,['Control Volume','ResTime']]
             # MAXtime = np.max(cont_values['ResTime']) 
     
             
@@ -201,7 +202,7 @@ with PdfPages(pdffile) as pdf:
             for i in polys2plot: 
                 arr0.append(val_at_poly(dpp, i, 'SUB')) 
                 arr1.append(val_at_poly(sett, i, 'SUB')) #%%%%%%%%%%%% UPDATE $$$$$$$$$$$
-                arr2.append(cont_values.loc[cont_values['Control Volume'] == 'polygon%d' % i, 'ResTime'].values) 
+                arr2.append(val_at_poly(denit, i, 'SUB'))
 
             # Convert values to a 1-D array that we can feed to a colormap
             arr0 = np.ravel(np.array(arr0))
@@ -215,8 +216,8 @@ with PdfPages(pdffile) as pdf:
             p2.set_array(arr2)
   
             # Make axes invisible for cleaner plot #%%%%%%%%%%%% UPDATE $$$$$$$$$$$
-            # clean_axis(ax[1], '%s (%s)' % (date, sett_label))
-            # #clean_axis(ax[1], '%s (%s)' % (date, 'Primary Production'))
+            clean_axis(ax[1], '%s (%s)' % (date, sett_label))
+            clean_axis(ax[2], '%s (%s)' % (date, 'Denitrification'))
             clean_axis(ax[0], '%s (%s)' % (date, 'DPP (Primary Production)'))
             # clean_axis(ax[2], 'Residence Time')
             

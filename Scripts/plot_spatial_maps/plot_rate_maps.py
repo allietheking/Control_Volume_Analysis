@@ -43,7 +43,7 @@ run_ID = 'FR17_003'
 wy = 2017
 #wy = 2018
 
-# what rate to plot? options are "denit", 'dpp', "nloss", "oxycon"
+# what rate to plot? options are "denit", 'dpp', "nloss", "dinloss", oxycon"
 rate_name = 'dpp'
 
 # time period (Annual, Seasonal, Monthly, maybe add Weekly later?)
@@ -173,6 +173,34 @@ elif rate_name=='dpp':
 
     # include a log scale plot?
     log_scale = True
+
+elif rate_name=='dinloss':
+
+    # title for figure
+    rate_title = 'DIN Assimilation'
+
+    # grams of what in the units?   
+    grams_of_what = 'N'
+
+    # list of balance tables
+    balance_table_list = ['no3_Table.csv', 'nh4_Table.csv']
+
+    # multiplier for each balance table
+    multiplier_list = [-1, -1]
+
+    # for each balance table, list of reactions to sum
+    reaction_list = [['NO3,dDenitWat', 'NO3,dNitrif', 'NO3,dDenitSed', 'NO3,dNiDen', 'NO3,dNO3Upt'],
+                 ['NH4,dMinPON1', 'NH4,dMinDON', 'NH4,dNitrif', 'NH4,dMinDetNS1',
+                  'NH4,dMinDetNS2', 'NH4,dZ_NRes', 'NH4,dNH4Aut', 'NH4,dNH4Upt']]
+
+    # color maps
+    cmap = cmocean.cm.balance
+
+    # center at zero?
+    cmap_diverging = True
+
+    # don't let there be a log scale for this one! it goes negative
+    log_scale = False
 
 elif rate_name=='nloss':
 

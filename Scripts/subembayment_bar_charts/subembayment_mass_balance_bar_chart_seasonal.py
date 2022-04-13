@@ -21,8 +21,8 @@ figsize = (6.5,8.5)
 balance_table_path = r'X:\hpcshared\NMS_Projects\Control_Volume_Analysis\Balance_Tables'
 
 # run id and water year
-runid = 'FR13_021' # 'FR17_014' # 'FR18_004'
-water_year = 2013 # 2017 # 2018
+runid = 'FR18_004' # 'FR13_021' # 'FR17_014' # 
+water_year = 2018 # 2013 # 2017 # 
 
 # parameter to plot
 param = 'DIN'
@@ -53,12 +53,6 @@ figure_fn = r'X:\hpcshared\NMS_Projects\Control_Volume_Analysis\Plots\%s\Seasona
 
 # use same y range for terms in mass budget
 same_y_range = False
-
-# axis range hard coded
-y_load = (0,37)
-y_influx = (0,280)
-y_loss = (-8,19)
-y_outflux = (0,310)
 
 # list of directions the influx comes from, by group name key
 influx_dir_dict = {}
@@ -141,7 +135,7 @@ W = 1/(nbars + 1)
 O = (1-nbars)*W/2 
 
 # now that we have all the data, put it in the bar chart
-fig, ax = plt.subplots(4,1, figsize=figsize, constrained_layout=True)
+fig, ax = plt.subplots(4,1, figsize=figsize)
 for ibar in range(nbars):
     ax[0].bar(X + ibar*W + O, data_load[ibar], W, label=bar_labels[ibar], color=colors[ibar], edgecolor=colors[ibar], fill=fills[ibar])
     ax[1].bar(X + ibar*W + O, data_influx[ibar], W, label=bar_labels[ibar], color=colors[ibar], edgecolor=colors[ibar], fill=fills[ibar])
@@ -156,7 +150,6 @@ for i in range(4):
 for i in range(4):
     ax[i].set_xticks(X)
     ax[i].set_xticklabels(group_labels)
-ax[1].legend()
 
 # label the y axes and title
 ax[0].set_ylabel('Loading (Mg/d)')
@@ -177,30 +170,8 @@ if same_y_range:
         ymax1 = ymax*yrange/(ymax-ymin)
         ax[i].set_ylim((ymin1,ymax1))
 
-ax[0].set_ylim(y_load)
-ax[1].set_ylim(y_influx)
-ax[2].set_ylim(y_loss)
-ax[3].set_ylim(y_outflux)
 
+# add legend, tight layout, save
+ax[3].legend(bbox_to_anchor=(0.5, -0.35), loc='upper center', ncol=nbars)
+fig.tight_layout()
 fig.savefig(figure_fn)
-
-
-#input_fn = os.path.join(input_path, run_ID, 'Balance_Table_By_Group_Composite_Parameter_%s.csv' % param)
-
-#df = pd.read_csv(input_fn)
-
-
-
-
-
-
-
-#data = [[30, 25, 50, 20],
-#[40, 23, 51, 17],
-#[35, 22, 45, 19]]
-#X = np.arange(4)
-#fig = plt.figure()
-#ax = fig.add_axes([0,0,1,1])
-#ax.bar(X + 0.00, data[0], color = 'b', width = 0.25)
-#ax.bar(X + 0.25, data[1], color = 'g', width = 0.25)
-#ax.bar(X + 0.50, data[2], color = 'r', width = 0.25)

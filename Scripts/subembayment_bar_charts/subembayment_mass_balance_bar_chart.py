@@ -159,7 +159,7 @@ W = 1/(nbars + 1)
 O = (1-nbars)*W/2 
 
 # now that we have all the data, put it in the bar chart
-fig, ax = plt.subplots(4,1, figsize=figsize, constrained_layout=True)
+fig, ax = plt.subplots(4,1, figsize=figsize)
 for ibar in range(nbars):
     ax[0].bar(X + ibar*W + O, data_load[ibar], W, label=bar_labels[ibar], color=colors[ibar], edgecolor=colors[ibar], fill=fills[ibar])
     ax[1].bar(X + ibar*W + O, data_influx[ibar], W, label=bar_labels[ibar], color=colors[ibar], edgecolor=colors[ibar], fill=fills[ibar])
@@ -174,7 +174,6 @@ for i in range(4):
 for i in range(4):
     ax[i].set_xticks(X)
     ax[i].set_xticklabels(group_labels)
-ax[1].legend()
 
 # label the y axes and title
 ax[0].set_ylabel('Loading (Mg/d)')
@@ -183,6 +182,10 @@ ax[2].set_ylabel('Reactive Loss (Mg/d)')
 ax[3].set_ylabel('Outflux (Mg/d)')
 ax[0].set_title(figure_title)
 
+
+# add legend, tight layout, save
+ax[3].legend(bbox_to_anchor=(0.5, -0.35), loc='upper center', ncol=nbars)
+fig.tight_layout()
 fig.savefig(figure_fn)
 
 

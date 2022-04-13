@@ -18,17 +18,15 @@ import datetime as dt
 import matplotlib.dates as mdates
 plt.switch_backend("Agg")
 
-
-
 #########################################################################################
 ## user input
 #########################################################################################
 
-water_year = 'WY2017'
-run2plot = 'FR17_003'
+water_year = 'WY2013'
+run2plot = 'FR13_021'
 
 ## pick the time window for cumulative plot
-t_window = np.array(['2016-10-01','2017-10-01']).astype('datetime64')
+t_window = np.array(['2012-10-01','2013-10-01']).astype('datetime64')
 
 #########################################################################################
 
