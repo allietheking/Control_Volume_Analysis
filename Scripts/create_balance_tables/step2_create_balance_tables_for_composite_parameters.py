@@ -1,8 +1,9 @@
 
 '''
-Starting with raw parameters found in 'Balance_Table_All_Parameters_By_Group.csv' file, 
-calculates fluxes and rates for composite parameters defined in the user input section by
-constituents and reaction groupings.
+Starting with balance tables for modeled parameters, create balance tables for composite parameters
+such as DIN and TN. Automatically finds correct stoichiometric mutipliers from *.lsp file. All the 
+reactions in each of the component parameters are included separately. They may be consolidated into 
+composite reaction terms in "step3". Allie April 2022
 '''
 
 #################################################################
@@ -28,15 +29,24 @@ if hostname == 'richmond':
 # open bay, has clams: G141_13to18_132
 
 # run id 
-runid = 'FR13_003'
-#runid = 'Delta_FR16_28'
+#runid = 'FR16_28'
+#runid = 'FR13_003'
+#runid = 'FR17_003'
+runid = 'FR17_017'
+#runid = 'FR18_005'
+
+# water year
+#wy = 'WY2013'
+wy = 'WY2017'
+#wy = 'WY2018'
+
+# is delta run?
+is_delta = False
 
 # path to the lsp file
-#lsp_path = r'W:\open_bay\BGC_model\Full_res\WY2013\FR13_021\sfbay_dynamo000.lsp'
-#lsp_path = r'X:\hpcshared\Delta\BGC_model\Full_res\FR16_28\FR16_28\wy2016.lsp'
 #lsp_path = '/richmondvol1/hpcshared/Delta/BGC_model/Full_res/FR16_28/FR16_28/wy2016.lsp'
-lsp_path = '/richmondvol1/hpcshared/Full_res/WY2013/FR13_003/sfbay_dynamo000.lsp'
-
+#lsp_path = '/hpcvol2/open_bay/BGC_model/Full_res/%s/%s/sfbay_dynamo000.lsp' % (wy,runid)
+lsp_path = '/richmondvol1/hpcshared/Full_res/%s/%s/sfbay_dynamo000.lsp' % (wy,runid)
 
 # path to base level balance tables (organized by runid within this folder)
 #balance_table_path = r'X:\hpcshared\NMS_Projects\Control_Volume_Analysis\Balance_Tables'
@@ -45,6 +55,7 @@ balance_table_path = '/richmondvol1/hpcshared/NMS_Projects/Control_Volume_Analys
 # list of composite parameters -- include all possible component parameters, script will automatically 
 # check if they were included in this run and leave it out if needed
 composite_parameters = {
+    'Algae' : ['Diat', 'Green'],
     'DIN' : ['NH4', 'NO3'],
     'TN'  : ['NH4', 'NO3', 'PON1', 'DON', 'Diat', 'Green', 'Zoopl_V', 'Zoopl_E', 'Zoopl_R'], 
     'TP'  : ['PO4', 'POP1', 'DOP', 'Diat', 'Green', 'Zoopl_V', 'Zoopl_E', 'Zoopl_R'],
@@ -52,8 +63,9 @@ composite_parameters = {
     'DetPS' : ['DetPS1', 'DetPS2'],
     'DetSi' : ['DetSiS1', 'DetSiS2'],
     'Zoopl' : ['Zoopl_V', 'Zoopl_E', 'Zoopl_R'],
-    'Grazer4' : ['Zoopl_V', 'Zoopl_E', 'Zoopl_R'],
-    'Mussel' : ['Zoopl_V', 'Zoopl_E', 'Zoopl_R'], 
+    'Grazer4' : ['Grazer4_V', 'Grazer4_E', 'Grazer4_R'],
+    'Mussel' : ['Mussel_V', 'Mussel_E', 'Mussel_R'], 
+    'Clams' : ['Grazer4_V', 'Grazer4_E', 'Grazer4_R', 'Mussel_V', 'Mussel_E', 'Mussel_R'],
     'TP_include_sediment' : ['PO4', 'POP1', 'DOP', 'DetPS1', 'DetPS2', 
                              'Diat', 'Green', 'Zoopl_V', 'Zoopl_E', 'Zoopl_R',
                              'Mussel_V','Mussel_E','Mussel_R','Grazer4_V','Grazer4_E','Grazer4_R'],
@@ -72,9 +84,11 @@ composite_bases = {
     'DetNS' : 'N',
     'DetPS' : 'P',
     'DetSi' : 'Si',
+    'Algae' : 'C',
     'Zoopl' : 'C',
     'Grazer4' : 'C',
-    'Mussel' : 'C'
+    'Mussel' : 'C',
+    'Clams' : 'C',
 }
 
 # float format for csv files
@@ -102,18 +116,31 @@ def get_rx_list(df, substance):
 ###################################################################
 
 # run folder is run id within balance table folder
-run_folder = os.path.join(balance_table_path,runid)
+if is_delta:
+    run_folder = os.path.join(balance_table_path,'Delta_' + runid)
+else:
+    run_folder = os.path.join(balance_table_path,runid)
 
 # setup logging to file and to screen 
-logging.basicConfig(
-    level=logging.INFO,
-    mode='w',
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.FileHandler(os.path.join(run_folder,"log_step2.log")),
-        logging.StreamHandler(sys.stdout)
-    ]
-)
+try:
+    logging.basicConfig(
+        level=logging.INFO,
+        mode='w',
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.FileHandler(os.path.join(run_folder,"log_step2.log")),
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+except:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.FileHandler(os.path.join(run_folder,"log_step2.log")),
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
 
 # add some basic info to log file
 user = os.getlogin()
@@ -122,6 +149,14 @@ conda_env=os.environ['CONDA_DEFAULT_ENV']
 today= datetime.datetime.now().strftime('%b %d, %Y')
 logging.info('Composite balance tables with "Ungrouped Rx" were produced on %s by %s on %s in %s using %s' % (today, user, hostname, conda_env, scriptname))
 
+# do some checks to make sure we're reading the right lsp file, makes some assumptiions about how files
+# are organized on our servers, so if that changes may have to debug this part
+if not runid in lsp_path:
+    raise Exception('Danger: *.lsp path looks incorrect, aborting')
+if is_delta:
+    if (not (('Delta' in lsp_path) or ('delta' in lsp_path))):
+        raise Exception('Danger: *.lsp path looks incorrect, aborting')
+    
 # read the lsp file and return a list of the substances
 substances = []
 with open(lsp_path,'r') as f:

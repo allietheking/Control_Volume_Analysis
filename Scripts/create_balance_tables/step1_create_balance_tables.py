@@ -2,9 +2,10 @@
 '''
 This script converts *.his and *-bal.his data to *.csv formatted balance tables containing
 daily fluxes and reaction terms in the "monitoring regions" defined by polygons and transects.
-Note this script requires a python environment with geopandas installed. On HPC load Zhenlin's 
-environment by executing the following from the command line: 
-    source activate /home/zhenlin/.conda/envs/my_root
+Updated by Allie in 2022 to run in new python environment on chicago:
+    source activate geo_env
+    cd /richmondvol1/hpcshared/NMS_Projects/Control_Volume/Scripts/create_balance_tables
+and run from there
 '''
 
 #################################################
@@ -32,12 +33,18 @@ except:
 ### USER INPUT
 ################
 
-# run folder
-#run_folder = 'FR16_28'  # Delta run ... "Delta_" prefix will be automatically added to run folder if you set is_delta to True
-run_folder = 'FR13_003'
+# run folder 
+#run_folder = 'G141_13to18_146'
+#run_folder = 'FR13_003' 
+#run_folder = 'FR17_003'
+#run_folder = 'FR17_017'
+run_folder = 'FR18_005'
 
 # water year (for long agg run use WY13to18, this is part of path to the run files)
-water_year = 'WY2013'
+#water_year = 'WY2013'
+#water_year = 'WY2017'
+water_year = 'WY2018'
+#water_year = 'WY13to18'
 
 # delta run? (if so, script assumes it is full resolution)
 is_delta = False
@@ -132,15 +139,23 @@ if not os.path.exists(os.path.join(output_dir,run_folder_out)):
     os.makedirs(os.path.join(output_dir,run_folder_out))
 
 # setup logging to file and to screen 
-logging.basicConfig(
+try:
+    logging.basicConfig(
     level=logging.INFO,
     mode='w',
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
         logging.FileHandler(os.path.join(output_dir,run_folder_out,"log_step1.log")),
         logging.StreamHandler(sys.stdout)
-    ]
-)
+    ])
+except:
+    logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler(os.path.join(output_dir,run_folder_out,"log_step1.log")),
+        logging.StreamHandler(sys.stdout)
+    ])
 
 # add some basic info to log file
 user = os.getlogin()
@@ -323,7 +338,3 @@ for varname in varnames:
     # save
     df_output.to_csv(outfile,columns=column_list,float_format=float_format)   
     logging.info('Saved %s' % outfile)
-    # logging.info('Saved %s' % outfile)
-     
-
-# logging.shutdown()
