@@ -22,51 +22,69 @@ hostname = socket.gethostname()
 if hostname == 'richmond':
     raise Exception("Do not run this script on richmond until we update the conda environment... run on chicago or your laptop instead")
 
+# if running the script alone, load the configuration module (in this folder)
+if __name__ == "__main__":
+
+    import importlib
+    import step0_config
+    importlib.reload(step0_config)
 
 #################################################################
 # USER INPUT
 #################################################################
 
-# run id 
-#runid = 'FR16_28'
-#runid = 'FR13_003'
-#runid = 'FR13_023'
-#runid = 'FR17_003'
-#runid = 'FR17_017'
-runid = 'FR18_005'
-
-# is delta run?
-is_delta = False
-
-# path to base level balance tables (organized by runid within this folder)
-balance_table_path = '/richmondvol1/hpcshared/NMS_Projects/Control_Volume_Analysis/Balance_Tables'
+# get variables out of the configuration module (see step0_config.py in this folder)
+from step0_config import runid, is_delta, balance_table_dir, float_format
 
 # call out any sets of reactions you want to sum together to appear as one reaction 
 # in the composite parameter mass budgets, and give each composite reaction a name ...
 composite_reaction_dict = {
-     'Zoopl' : { 'Zoopl_VER_dZ_VERmor' : ['Zoopl_V,dZ_Vmor','Zoopl_E,dZ_Emor','Zoopl_R,dZ_Rmor'],
+     'N-Algae' : {'Algae,dZ_Algae' : ['Diat,dZ_Diat', 'Green,dZ_Grn'],
+                'Algae,dSedAlgae' : ['Diat,dSedDiat', 'Green,dSedGreen'], 
+                'Algae,dPPAlgae' : ['Diat,dPPDiat','Green,dPPGreen','DiatS1,dPPDiatS1'],
+                'Algae,dcPPAlgae' : ['Diat,dcPPDiat','Green,dcPPGreen'],
+                'Algae,dMrtAlgae' : ['Diat,dMrtDiat','Green,dMrtGreen','DiatS1,dMrtDiatS1'],
+                'DiatS1,dBurS1Diat' : ['DiatS1,dBurS1Diat'], # burial of benthic algae is currently a true sink in the model
+                'ZERO: DiatS1,dResS1Diat' : ['DiatS1,dResS1Diat'], 
+                'ZERO: DiatS1,dSWBuS1Dia' : ['DiatS1,dSWBuS1Dia'],
+                'ZERO: DiatS1,dDigS1Diat' : ['DiatS1,dDigS1Diat'] },
+     'N-Zoopl' : { 'Zoopl_VER_dZ_VERmor' : ['Zoopl_V,dZ_Vmor','Zoopl_E,dZ_Emor','Zoopl_R,dZ_Rmor'],
                  'Zoopl_VR_VRgr' : ['Zoopl_V,dZ_Vgr', 'Zoopl_R,dZ_Rgr']},
      'Algae' : {'Algae,dZ_Algae' : ['Diat,dZ_Diat', 'Green,dZ_Grn'],
                 'Algae,dSedAlgae' : ['Diat,dSedDiat', 'Green,dSedGreen'], 
-                'Algae,dPPAlgae' : ['Diat,dPPDiat','Green,dPPGreen'],
+                'Algae,dPPAlgae' : ['Diat,dPPDiat','Green,dPPGreen','DiatS1,dPPDiatS1'],
                 'Algae,dcPPAlgae' : ['Diat,dcPPDiat','Green,dcPPGreen'],
-                'Algae,dMrtAlgae' : ['Diat,dMrtDiat','Green,dMrtGreen'] },
+                'Algae,dMrtAlgae' : ['Diat,dMrtDiat','Green,dMrtGreen','DiatS1,dMrtDiatS1'],
+                'DiatS1,dBurS1Diat' : ['DiatS1,dBurS1Diat'], # burial of benthic algae is currently a true sink in the model
+                'ZERO: DiatS1,dResS1Diat' : ['DiatS1,dResS1Diat'], 
+                'ZERO: DiatS1,dSWBuS1Dia' : ['DiatS1,dSWBuS1Dia'],
+                'ZERO: DiatS1,dDigS1Diat' : ['DiatS1,dDigS1Diat'] },
+     'Zoopl' : { 'Zoopl_VER_dZ_VERmor' : ['Zoopl_V,dZ_Vmor','Zoopl_E,dZ_Emor','Zoopl_R,dZ_Rmor'],
+                 'Zoopl_VR_VRgr' : ['Zoopl_V,dZ_Vgr', 'Zoopl_R,dZ_Rgr']},
      'DIN' : {
-             'NH4,dMinDetN' : ['NH4,dMinDetNS1', 'NH4,dMinDetNS2'],
-             'DIN,dDINUpt'  : ['NO3,dNO3Upt', 'NH4,dNH4Upt'],       
-             'NO3,dDenit'   : ['NO3,dDenitWat', 'NO3,dDenitSed'],
-             'ZERO: NO3,dNiDen'     : ['NO3,dNiDen'],                             # this is zero for the current model (because no sediment model??? not sure why)
+             'NH4,dMinDetN' : ['NH4,dMinDetNS1', 'NH4,dMinDetNS2'], # this is a source
+             'DIN,dDINUpt'  : ['NO3,dNO3Upt', 'NH4,dNH4Upt', # uptake is a sink, uptake for diatoms and greens is lumped together
+                               'NH4,dNH4UptS1', 'NH4,dNH4US1D', 'NO3,dNO3UptS1'], # there are three additional uptake terms for benthic algae       
+             'NO3,dDenit'   : ['NO3,dDenitWat', 'NO3,dDenitSed'], # this is a sink
+             'NO3,dNiDen'     : ['NO3,dNiDen'],    # this is a sink that is usually zero but sometimes has very large spikes
+             'NH4,dMinPON1' : ['NH4,dMinPON1'], # this is a source
+             'NH4,dMinDON' : ['NH4,dMinDON'], # this is a source
+             'NH4,dZ_NRes' : ['NH4,dZ_NRes'], # this is a source
+             'NH4,dNH4Aut'  : ['NH4,dNH4Aut'], # this is a source
+             'ZERO: NH4,dNH4AUTS1' : ['NH4,dNH4AUTS1'], # this is zero for now
              'ZERO: NH4,dNitrif + NO3,dNitrif'  : ['NO3,dNitrif', 'NH4,dNitrif'],     # these should cancel out    
              },
     'TN' : { 'NO3,dDenit' : ['NO3,dDenitWat', 'NO3,dDenitSed'], # this should be a SINK for TN
+             'NO3,dNiDen'     : ['NO3,dNiDen'],    # this is a very small sink
              'Algae,dSedAlgae' : ['Diat,dSedDiat', 'Green,dSedGreen'],  # this should be a SINK for TN
              'PON1,dSedPON1' : ['PON1,dSedPON1'], # this should be a SINK for TN 
+             'DiatS1,dMrtDiatS1' : ['DiatS1,dMrtDiatS1'], # dead benthic algae turn into detritus through the 'DetNS1,dMrtDetNS1' term, so this is a water column sink
+             'DiatS1,dBurS1Diat' : ['DiatS1,dBurS1Diat'], # burial of benthic algae appears to be a true sink -- it leaves the model completely!
              'NH4,dMinDetNS' : ['NH4,dMinDetNS1', 'NH4,dMinDetNS2'], # this should be a SOURCE for TN
              'NH4,dClam_NRes' : ['NH4,dM_NRes','NH4,dG4_NRes'], # this is a SOURCE for TN (clam pee)
              'PON1,dClam_NDef' : ['PON1,dM_NDef','PON1,dG4_NDef'], # this is a SOURCE for TN (clam poo)
              'Algae,dClam_Algae' : ['Diat,dM_Diat','Diat,dG4_Diat','Green,dM_Green','Green,dG4_Green'], # this is a SINK for TN (clams eat algae)
              'PON1,dClam_PON1' : ['PON1,dM_PON1','PON1,dG4_PON1'], # this is a SINK for TN (clams eat dead algae?)
-             'ZERO: NO3,dNiDen'     : ['NO3,dNiDen'],                             # this is zero for the current model (because no sediment model??? not sure why)
              'ZERO: PON1,dCnvPPON1' : ['PON1,dCnvPPON1'],
              'ZERO: PON1,dResS1DetN + PON1,dResS2DetN + PON1,dResS1DiDN + PON1,dResS2DiDN' : [
                                           'PON1,dResS1DetN', 
@@ -84,6 +102,10 @@ composite_reaction_dict = {
                                          'Zoopl_V,dZ_Vmor',  
                                           'Zoopl_R,dZ_Rmor',  
                                           'Zoopl_E,dZ_Emor'], 
+             'ZERO: NH4,dNH4AUTS1 + DiatS1,dResS1Diat + DiatS1,dSWBuS1Dia + DiatS1,dDigS1Diat' : ['NH4,dNH4AUTS1',      # new benthic algae terms, each one is zero, for now
+                                                                                      'DiatS1,dResS1Diat', 
+                                                                                      'DiatS1,dSWBuS1Dia', 
+                                                                                      'DiatS1,dDigS1Diat'], 
              # in the PRE August 2020 model this does NOT sum to zero but it should
              'ZERO: Diat,dPPDiat + Diat,dcPPDiat + Green,dPPGreen + Green,dcPPGreen + NH4,dNH4Upt + NO3,dNO3Upt' : 
                                                                                      ['Diat,dPPDiat',
@@ -93,6 +115,10 @@ composite_reaction_dict = {
                                                                                       'NH4,dNH4Upt',
                                                                                       'NO3,dNO3Upt'],
              # identify groups of terms that sum to zero
+             'ZERO: NH4,dNH4UptS1 + NH4,dNH4US1D + NO3,dNO3UptS1 + DiatS1,dPPDiatS1' : ['NH4,dNH4UptS1', # these terms sum to zero, benthic algae productivity
+                                                                                        'NH4,dNH4US1D', 
+                                                                                        'NO3,dNO3UptS1', 
+                                                                                        'DiatS1,dPPDiatS1'], 
              'ZERO: NO3,dNitrif + NH4,dNitrif' : ['NO3,dNitrif','NH4,dNitrif'],      # these two sum to zero
              'ZERO: DON,dCnvDPON1 + PON1,dCnvDPON1' : ['DON,dCnvDPON1','PON1,dCnvDPON1'], # these two sum to zero
              'ZERO: NH4,dMinPON1 + PON1,dMinPON1' : ['NH4,dMinPON1','PON1,dMinPON1'],   # these two sum to zero
@@ -118,8 +144,9 @@ composite_reaction_dict = {
             },
     'TN_include_sediment' : {
              'NO3,dDenit' : ['NO3,dDenitWat','NO3,dDenitSed'], # this should be a SINK for TN
+             'NO3,dNiDen'     : ['NO3,dNiDen'],    # this is a very small sink
              'DetNS2,dBurS2DetN' : ['DetNS2,dBurS2DetN'], # this appears to act as a true SINK for TN as well
-             'ZERO: NO3,dNiDen'     : ['NO3,dNiDen'],                             # this is zero for the current model (because no sediment model??? not sure why)
+             'DiatS1,dBurS1Diat' : ['DiatS1,dBurS1Diat'], # burial of benthic algae also seems to be a true sink
              'ZERO: PON1,dCnvPPON1' : ['PON1,dCnvPPON1'],
              'ZERO: PON1,dResS1DetN + PON1,dResS2DetN + PON1,dResS1DiDN + PON1,dResS2DiDN' : [
                                           'PON1,dResS1DetN', 
@@ -153,6 +180,10 @@ composite_reaction_dict = {
                          'DetNS2,dDigS1DetN',
                          'DetNS2,dDigS2DetN'],
              'ZERO: Mussel_R,dM_SpwDet + Grazer4_R,dG4_SpwDet' : ['Mussel_R,dM_SpwDet','Grazer4_R,dG4_SpwDet'],
+             'ZERO: NH4,dNH4AUTS1 + DiatS1,dResS1Diat + DiatS1,dSWBuS1Dia + DiatS1,dDigS1Diat' : ['NH4,dNH4AUTS1',      # new benthic algae terms, each one is zero
+                                                                                                  'DiatS1,dResS1Diat', 
+                                                                                                  'DiatS1,dSWBuS1Dia', 
+                                                                                                  'DiatS1,dDigS1Diat'], 
              # in the PRE August 2020 model this does NOT sum to zero but it should
              'ZERO: Diat,dPPDiat + Diat,dcPPDiat + Green,dPPGreen + Green,dcPPGreen + NH4,dNH4Upt + NO3,dNO3Upt' : 
                                                                                      ['Diat,dPPDiat',
@@ -162,11 +193,16 @@ composite_reaction_dict = {
                                                                                       'NH4,dNH4Upt',
                                                                                       'NO3,dNO3Upt'],
              # identify groups of terms that sum to zero
+             'ZERO: NH4,dNH4UptS1 + NH4,dNH4US1D + NO3,dNO3UptS1 + DiatS1,dPPDiatS1' : ['NH4,dNH4UptS1', # these terms sum to zero, benthic algae productivity
+                                                                                        'NH4,dNH4US1D', 
+                                                                                        'NO3,dNO3UptS1', 
+                                                                                        'DiatS1,dPPDiatS1'], 
              'ZERO: NO3,dNitrif + NH4,dNitrif' : ['NO3,dNitrif','NH4,dNitrif'],      # these two sum to zero
              'ZERO: DON,dCnvDPON1 + PON1,dCnvDPON1' : ['DON,dCnvDPON1','PON1,dCnvDPON1'], # these two sum to zero
              'ZERO: NH4,dMinPON1 + PON1,dMinPON1' : ['NH4,dMinPON1','PON1,dMinPON1'],   # these two sum to zero
              'ZERO: NH4,dMinDON + DON,dMinDON' : ['NH4,dMinDON','DON,dMinDON'],       # these two sum to zero
-             'ZERO: Diat,dMrtDiat + Green,dMrtGreen + PON1,dMortDetN + NH4,dNH4Aut' :  [ 
+             'ZERO: DetNS1,dMrtDetNS1 + DiatS1,dMrtDiatS1' : ['DetNS1,dMrtDetNS1', 'DiatS1,dMrtDiatS1'], # these new benthic algae terms sum to zero -- note currently autolysis is zero, may need to add here if it isn't later on
+             'ZERO: Diat,dMrtDiat + Green,dMrtGreen + PON1,dMortDetN + NH4,dNH4Aut' :  [ # these still sum to zero with benthic algae
                                         'Diat,dMrtDiat', 
                                         'Green,dMrtGreen',
                                         'PON1,dMortDetN',
@@ -182,9 +218,9 @@ composite_reaction_dict = {
                                  'Zoopl_R,dZ_Rgr',
                                  'Zoopl_E,dZ_Ea',
                                  'Zoopl_E,dZ_Ec'],
-             'ZERO: PON1,dSedPON1 + DetNS1,dSedPON1' : ['PON1,dSedPON1',
+             'ZERO: PON1,dSedPON1 + DetNS1,dSedPON1' : ['PON1,dSedPON1', # these still sum to zero with benthic algae
                                                         'DetNS1,dSedPON1'],
-             'ZERO: NH4,dMinDetNS1 + NH4,dMinDetNS2 + DetNS1,dMinDetNS1 + DetNS2,dMinDetNS2' : ['NH4,dMinDetNS1', 
+             'ZERO: NH4,dMinDetNS1 + NH4,dMinDetNS2 + DetNS1,dMinDetNS1 + DetNS2,dMinDetNS2' : ['NH4,dMinDetNS1',    # these still sum to zero with benthic algae
                                                                                                 'NH4,dMinDetNS2', 
                                                                                                 'DetNS1,dMinDetNS1',
                                                                                                 'DetNS2,dMinDetNS2'],
@@ -212,17 +248,20 @@ composite_reaction_dict = {
                          'Grazer4_E,dG4_Ea',
                          'Grazer4_E,dG4_Ec',
                          'Grazer4_R,dG4_Rgr'],
-             'ZERO: DetNS1,dBurS1DetN + DetNS2,dBurS1DetN' : ['DetNS1,dBurS1DetN', 'DetNS2,dBurS1DetN'],
-             'ZERO: Diat,dSedDiat + Green,dSedGreen + DetNS1,dSedAlgN' :  ['Diat,dSedDiat','Green,dSedGreen','DetNS1,dSedAlgN'] 
-    }
+             'ZERO: DetNS1,dBurS1DetN + DetNS2,dBurS1DetN' : ['DetNS1,dBurS1DetN', 'DetNS2,dBurS1DetN'],  # these still sum to zero with benthic algae
+             'ZERO: Diat,dSedDiat + Green,dSedGreen + DetNS1,dSedAlgN' :  ['Diat,dSedDiat','Green,dSedGreen','DetNS1,dSedAlgN'] # these still sum to zero with benthic algae
+    },
+
+    # have not gotten to these yet, leaving reactions ungrouped...
+    'DetNS' : {},
+    'TP' : {},
+    'TP_include_sediment' : {},
+    'DetPS' : {},
+    'DetSi' : {},
+    'Grazer4' : {},
+    'Mussel' : {},
+    'Clams' : {}
 }
-
-# float format for csv files
-float_format = '%1.16e'
-
-# if is delta, add "Delta_" prefix to runid
-if is_delta:
-    runid = 'Delta_' + runid
 
 #################################################################
 # FUNCTIONS
@@ -250,34 +289,31 @@ def get_not_rx_list(df, rx_list):
             not_rx_list.append(column)
     return not_rx_list
 
+def logger_cleanup():
+
+    ''' check for open log files, close them, release handlers'''
+
+    # clean up logging
+    logger = logging.getLogger()
+    handlers = list(logger.handlers)
+    if len(handlers)>0:
+        for handler in handlers:
+            handler.close()
+            logger.removeHandler(handler) 
 
 ###################################################################
 # MAIN
 ###################################################################
 
-# run folder is run id within balance table folder
-run_folder = os.path.join(balance_table_path,runid)
-
 # setup logging to file and to screen 
-try:
-    logging.basicConfig(
-        level=logging.INFO,
-        mode='w',
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        handlers=[
-            logging.FileHandler(os.path.join(run_folder,"log_step3.log")),
-            logging.StreamHandler(sys.stdout)
-        ]
-    )
-except:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        handlers=[
-            logging.FileHandler(os.path.join(run_folder,"log_step3.log")),
-            logging.StreamHandler(sys.stdout)
-        ]
-    )
+logger_cleanup()
+logging.basicConfig(
+level=logging.INFO,
+format="%(asctime)s [%(levelname)s] %(message)s",
+handlers=[
+    logging.FileHandler(os.path.join(balance_table_dir,"log_step3.log"),'w'),
+    logging.StreamHandler(sys.stdout)
+])
 
 # add some basic info to log file
 user = os.getlogin()
@@ -285,6 +321,13 @@ scriptname= __file__
 conda_env=os.environ['CONDA_DEFAULT_ENV']
 today= datetime.datetime.now().strftime('%b %d, %Y')
 logging.info('Composite balance tables with "Grouped Rx" were produced on %s by %s on %s in %s using %s' % (today, user, hostname, conda_env, scriptname))
+
+# log configuration variables
+logging.info('The following global variables were loaded from step0_conf.py:')
+logging.info('    runid = %s' % runid)
+logging.info('    is_delta = %r' % is_delta)
+logging.info('    balance_table_dir = %s' % balance_table_dir)
+logging.info('    float_format = %s' % float_format)
 
 # loop through the composite parameters
 for composite_param in composite_reaction_dict.keys():
@@ -294,15 +337,19 @@ for composite_param in composite_reaction_dict.keys():
 
     # input and output table names and paths
     input_table_name = composite_param.lower() + '_Table_Ungrouped_Rx.csv'
-    input_table_path = os.path.join(run_folder, input_table_name)
+    input_table_path = os.path.join(balance_table_dir, input_table_name)
     output_table_name = composite_param.lower() + '_Table.csv'
-    output_table_path = os.path.join(run_folder, output_table_name)
+    output_table_path = os.path.join(balance_table_dir, output_table_name)
     
     # get dictionary of compositie reactions
     composite_reactions = composite_reaction_dict[composite_param]
 
     #  read input table, which is the balance table for the composite parameters including every single reaction, totally ungrouped
-    df_composite = pd.read_csv(input_table_path)
+    try:
+        df_composite = pd.read_csv(input_table_path)
+    except:
+        logging.info('error reading %s, skipping this one ...' % input_table_name)
+        continue
 
     # get the list of columns that contain reactions, and the list that don't
     rx_list = get_rx_list(df_composite, composite_param)
@@ -368,3 +415,5 @@ for composite_param in composite_reaction_dict.keys():
     logging.info('    Saving composite parameter table with grouped reactions %s' % output_table_path)
     df_grouped.to_csv(output_table_path, index=False, float_format=float_format)
 
+# clean up logging
+logger_cleanup()

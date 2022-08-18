@@ -8,7 +8,7 @@
 #group_subset = ['L','K','J','I','H','G','F','E','D','C','B','A','V','U1','T1','S1','U2','T2','S2','X','W','Z','Y']
 
 # is full resolution?
-FR=True
+FR=False
 
 # for FR Runs (includes new segments defined by sienna and whole bay added by allie...)
 if FR:
@@ -99,8 +99,14 @@ for group in group_dict.keys():
 # convert to geodataframe
 gdf_group = gpd.GeoDataFrame(df_group)
 
+# print
+print('Finished creating geodataframe with aggregated groups...')
+
 # loop through the groups again
 for group in group_dict.keys():
+
+    # print
+    print('Compiling connections for group %s...' % group)
 
     # boundary of the polygon corresponding to this group
     group_bound = gdf_group.loc[gdf_group['feature']==group].geometry.values[0].boundary
@@ -130,6 +136,9 @@ for group in group_dict.keys():
 
     # loop through the connectivity keys 
     for connectivity in connectivity_list:
+
+        # print
+        print('Working on connectivity %s ...' % connectivity)
 
         # get the list of polygon pairs defining the connectivity
         flux_pairs = flux_pairs_dict[connectivity]
@@ -162,14 +171,25 @@ for group in group_dict.keys():
             # eliminate repeats
             coord_list = list(set(coord_list))
 
+            # number of coordinates in list
+            ngc = len(group_coords)
+            ncc = len(coord_list)
+
             # check the list of coordinates comprising the group, and if the first, last, 2nd, or 2nd to last
             # point is in our list of boundary coordinates, put the last point in the front of the list to rotate
             # them around the polygon
-            while ((group_coords[0] in coord_list) or (group_coords[1] in coord_list) 
-                                                  or (group_coords[2] in coord_list)
+            if ngc-ncc>=4:
+                while ((group_coords[0] in coord_list) or (group_coords[1] in coord_list) 
                                                   or (group_coords[-1] in coord_list) 
                                                   or (group_coords[-2] in coord_list)):
-                group_coords.insert(0,group_coords.pop())
+                    group_coords.insert(0,group_coords.pop())
+            elif ngc-ncc>=2:
+                while ((group_coords[0] in coord_list) or (group_coords[-1] in coord_list)):
+                    group_coords.insert(0,group_coords.pop())
+                print('Group has >=2 but <4 points outside this connection...')
+            else:
+                print('Group has <2 points outside this connection...')
+                break
 
             # now sort the coordinate list in order of the group coordinates
             coord_list_sorted = [gc for gc in group_coords if gc in coord_list]
