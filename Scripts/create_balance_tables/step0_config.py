@@ -1,5 +1,5 @@
 
-''' Configuration module for ALL of the balance table scripts 
+''' Configuration module for ALL of the create_balance_table scripts 
 This is where we set global variables that are used by all the scripts. 
 Many other settings are specified in the individual scripts as well, in the 
 USER INPUT section, so make sure to take a look there as well to see what the

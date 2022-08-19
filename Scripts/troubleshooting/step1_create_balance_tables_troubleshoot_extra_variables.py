@@ -271,7 +271,7 @@ for i in range(smax):
         ax1.text(xc1, yc1-500, station_df.iloc[i]['Station'])
 ax1.axis('off')
 ax1.set_title('Compare USGS Staiton 28 with Polygon 104')
-plt.savefig('troubleshoot_figs/Map_Station_Polygon_Comparison.png')
+plt.savefig('../../Plots/troubleshooting/troubleshoot_extra_variable_figs/Map_Station_Polygon_Comparison.png')
 plt.close()
 
 # compare station 28 and polygon 104 because their station 28 is at the centroid of polygon 104, and it's the channel, so hopefully kind of uniform???
@@ -470,7 +470,7 @@ ax2.legend(loc=3)
 ax1.set_xlim((ts,te))
 fig.autofmt_xdate()
 fig.suptitle('Compare every measure of productivity for monitoring areas\n(polygons), including both *.his and *-bal.his file data')
-plt.savefig('troubleshoot_figs/Compare_Measures_of_Productivity_for_Polygons.png')
+plt.savefig('../../Plots/troubleshooting/troubleshoot_extra_variable_figs/Compare_Measures_of_Productivity_for_Polygons.png')
 plt.close('all')
 
 
@@ -523,7 +523,7 @@ for var in var_list:
 
     fig.autofmt_xdate()
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.savefig('troubleshoot_figs/Compare_USGS_Station_Layer_Average_%s.png' % var)
+    plt.savefig('../../Plots/troubleshooting/troubleshoot_extra_variable_figs/Compare_USGS_Station_Layer_Average_%s.png' % var)
     plt.close('all')
 
 
@@ -607,7 +607,7 @@ for var in var_list:
     
         fig.autofmt_xdate()
         fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-        plt.savefig('troubleshoot_figs/Compare_USGS_Station_vs_Polygon_%s.png' % var)
+        plt.savefig('../../Plots/troubleshooting/troubleshoot_extra_variable_figs/Compare_USGS_Station_vs_Polygon_%s.png' % var)
         plt.close('all')
 
 
@@ -647,7 +647,7 @@ ax1.legend()
 ax1.set_ylabel(var)
 fig.suptitle('How are limnutdiat and limraddiat aggregated over the monitoring area polygons???')        
 fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-plt.savefig('troubleshoot_figs/Explore_Polygon_Aggregation_limnutdiat_limraddiat.png')
+plt.savefig('../../Plots/troubleshooting/troubleshoot_extra_variable_figs/Explore_Polygon_Aggregation_limnutdiat_limraddiat.png')
 plt.close('all')
 
 # try normalizing the rates by the number of elements and compare polygons and stations again
@@ -730,7 +730,7 @@ for var in ['fppdiat','rcrespdiat','rcgrodiat']:
     
         fig.autofmt_xdate()
         fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-        plt.savefig('troubleshoot_figs/Compare_USGS_Station_vs_Polygon_Norm_By_Elements_%s.png' % var)
+        plt.savefig('../../Plots/troubleshooting/troubleshoot_extra_variable_figs/Compare_USGS_Station_vs_Polygon_Norm_By_Elements_%s.png' % var)
         plt.close('all')
 
 
@@ -757,5 +757,5 @@ ax1.legend()
 ax1.set_xlim((ts,te))
 fig.autofmt_xdate()
 fig.suptitle('Compare every measure of productivity for monitoring areas\n(polygons), including both *.his and *-bal.his file data')
-plt.savefig('troubleshoot_figs/Compare_Measures_of_Productivity_for_Polygons_NORM_fppdiat.png')
+plt.savefig('../../Plots/troubleshooting/troubleshoot_extra_variable_figs/Compare_Measures_of_Productivity_for_Polygons_NORM_fppdiat.png')
 plt.close('all')

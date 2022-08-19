@@ -11,16 +11,13 @@ import sys, importlib
 
 def import_or_reload_module_by_string_name(module_name):
 
-	''' this function looks complicated, but it does something very simple: it accepts a module name as a string,
-	and if that module name is already imported, it will reload the module. if it is not already  imported, it will 
+	''' This function looks complicated, but it does something very simple: it accepts a module name as a string,
+	and if that module name is already imported, it will reload the module. If it is not already imported, it will 
 	import it for the first time'''
 
 	if module_name in sys.modules:
-
 		importlib.reload(importlib.import_module(module_name))
-	
 	else:
-	
 		importlib.import_module(module_name)
 
 
