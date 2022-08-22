@@ -30,13 +30,6 @@ if __name__ == "__main__":
     import step0_config
     importlib.reload(step0_config)
 
-#########################################################################################
-# user input
-#########################################################################################
-
-# get variables out of the configuration module (see step0_config.py in this folder)
-from step0_config import tavg_list, balance_table_dir, float_format
-
 ######################
 # functions
 ######################
@@ -101,7 +94,7 @@ logging.basicConfig(
 level=logging.INFO,
 format="%(asctime)s [%(levelname)s] %(message)s",
 handlers=[
-    logging.FileHandler(os.path.join(balance_table_dir,"log_step6.log"),'w'),
+    logging.FileHandler(os.path.join(step0_config.balance_table_dir,"log_step6.log"),'w'),
     logging.StreamHandler(sys.stdout)
 ])
 
@@ -111,12 +104,6 @@ scriptname= __file__
 conda_env=os.environ['CONDA_DEFAULT_ENV']
 today= dt.datetime.now().strftime('%b %d, %Y')
 logging.info('Time aggregated balance tables were produced on %s by %s on %s in %s using %s' % (today, user, hostname, conda_env, scriptname))
-
-# log configuration variables
-logging.info('The following global variables were loaded from step0_conf.py:')
-logging.info('    balance_table_dir = %s' % balance_table_dir)
-logging.info('    tavg_list = %r' % tavg_list)
-logging.info('    float_format = %s' % float_format)
 
 # get a list of all the files in the balance table directory, and pick out the ones with the format
 # (param)_Table.csv or (param)_Table_By_Group.csv
@@ -146,7 +133,7 @@ for balance_table_fn in table_list:
         by_group = False
 
     # read in the balance table corresponding to this parameter
-    df = pd.read_csv(os.path.join(balance_table_dir,balance_table_fn))
+    df = pd.read_csv(os.path.join(step0_config.balance_table_dir,balance_table_fn))
 
     # convert time to datetime64
     df['time'] = df['time'].astype('datetime64')
@@ -210,7 +197,7 @@ for balance_table_fn in table_list:
     group_list = np.unique(df[group_col])
 
     # loop through the time average aggregation schemes
-    for tavg in tavg_list: 
+    for tavg in step0_config.tavg_list: 
 
         # take cumulative sum by water year, starting on Oct 1 of first water year
         if tavg=='Cumulative':
@@ -361,7 +348,7 @@ for balance_table_fn in table_list:
         # save the results to a balance table, appending the time averaging scheme to the FRONT
         balance_table_fn_out = '%s_%s' % (balance_table_fn, tavg)            
         logging.info('    Saving %s' % balance_table_fn_out) 
-        df_tavg.to_csv(os.path.join(balance_table_dir,balance_table_fn_out),index=False, float_format=float_format)
+        df_tavg.to_csv(os.path.join(step0_config.balance_table_dir,balance_table_fn_out),index=False, float_format=step0_config.float_format)
 
 # clean up logging
 logger_cleanup()

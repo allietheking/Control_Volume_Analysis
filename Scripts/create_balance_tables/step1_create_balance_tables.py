@@ -12,7 +12,7 @@ and run from there
 # IMPORT MODULES (save stompy for later)
 #################################################
 
-import os, sys
+import os, sys, shutil
 import logging
 import xarray as xr
 import numpy as np
@@ -32,72 +32,8 @@ except:
 if __name__ == "__main__":
 
     import importlib
-    import step0_config
+    import step0_config 
     importlib.reload(step0_config)
-
-################
-### USER INPUT
-################
-
-# get variables out of the configuration module (see step0_config.py in this folder)
-from step0_config import runid, is_delta, substance_list, balance_table_dir, model_inout_dir, stompy_dir, float_format
-
-# for some parameters, the dwaq_hist.nc file does not have the correct units ... use this to override the units
-units_override = {'zoopl_e' : 'gC/m3',
-                  'zoopl_r' : 'gC/m3',
-                  'zoopl_v' : 'gC/m3',
-                  'zoopl_n' : '#/m3',}
-
-# is run full resolution? 
-if 'FR' in runid:
-    FR = True
-else:
-    FR = False
-
-# ugly complicated process to get the water year from the runid -- this is just for identifying the folder the run is stored in
-if 'FR' in runid:
-    # this extracts the 2 digit water year, assuming format of runid is like FR13_003 for WY2013 run 003
-    yr = int(runid.split('_')[0][2:])
-    # turn into water year string
-    water_year = 'WY%d' % (2000 + yr)
-elif 'G141' in runid:
-    # there are two formats for agg runs, G141_13_003 is water year 2013, G141_13to18_207 is water years 2013-2018
-    # get the string that represents the water year
-    yr = runid.split('_')[1]
-    # if it spans mutlple water years, keep the string, just add 'WY' in front of it
-    if 'to' in yr:
-        water_year = 'WY' + yr
-    # otherwise extract the integer and add it to 2000
-    else:
-        water_year = 'WY%d' % (2000 + int(yr))
-
-# path to folder that contains run folder, which in turn contain model output including dwaq_hist.nc 
-# and *-bal.his files. if there are no run subfolders, this is the direct path to dwaq_hist.nc and *-bal.his + 
-# path to shapefiles defining polygons and transects for the monitoring regions (make sure these are the same ones used to
-# initialize the DWAQ run)
-if is_delta:
-    shpfn_tran =  os.path.join(model_inout_dir,'Delta','inputs','shapefiles','control_volumes','Delta_Fullres_Transects_Dave_Plus_WB_v4.shp') 
-    shpfn_poly = os.path.join(model_inout_dir,'Delta','inputs','shapefiles','control_volumes','Delta_Fullres_Polygons_Dave_Plus_WB_v4.shp')
-    path = os.path.join(model_inout_dir,'Delta','BGC_model','Full_res',runid)
-    output_prefix = water_year.lower()
-elif FR:
-    shpfn_tran =  os.path.join(model_inout_dir,'inputs','shapefiles','Agg_exchange_lines_plus_subembayments_shoal_channel.shp') # used in FR17003, FR13003
-    shpfn_poly = os.path.join(model_inout_dir,'inputs','shapefiles','Agg_mod_contiguous_plus_subembayments_shoal_channel.shp')
-    path = os.path.join(model_inout_dir,'Full_res','%s' % water_year)
-    output_prefix = 'sfbay_dynamo000'
-else:
-    shpfn_poly =  os.path.join(model_inout_dir,'inputs','shapefiles','Agg_mod_contiguous_141.shp')
-    shpfn_tran = os.path.join(model_inout_dir,'inputs','shapefiles','Agg_exchange_lines_141.shp')
-    path = os.path.join(model_inout_dir,'Grid141','%s' % water_year)
-    output_prefix = 'sfbay_dynamo000'
-
-#################
-# IMPORT STOMPY
-##################
-
-if not stompy_dir in sys.path:
-    sys.path.append(stompy_dir)
-import stompy.model.delft.io as dio
 
 ##################
 # FUNCTIONS
@@ -145,17 +81,13 @@ def logger_cleanup():
 # MAIN
 ##################
 
-# if balance table output folder doesn't exist, create it
-if not os.path.exists(balance_table_dir):
-    os.makedirs(balance_table_dir)
-
 # setup logging to file and to screen 
 logger_cleanup()
 logging.basicConfig(
 level=logging.INFO,
 format="%(asctime)s [%(levelname)s] %(message)s",
 handlers=[
-    logging.FileHandler(os.path.join(balance_table_dir,"log_step1.log"),'w'),
+    logging.FileHandler(os.path.join(step0_config.balance_table_dir,"log_step1.log"),'w'),
     logging.StreamHandler(sys.stdout)
 ])
 
@@ -166,34 +98,55 @@ conda_env=os.environ['CONDA_DEFAULT_ENV']
 today= datetime.datetime.now().strftime('%b %d, %Y')
 logging.info('These balance tables were produced on %s by %s on %s in %s using %s' % (today, user, hostname, conda_env, scriptname))
     
-# log configuration variables
-logging.info('The following global variables were loaded from step0_conf.py:')
-logging.info('    runid = %s' % runid)
-logging.info('    is_delta = %r' % is_delta)
-logging.info('    substance_list = %s' % substance_list)
-logging.info('    balance_table_dir = %s' % balance_table_dir)
-logging.info('    model_inout_dir = %s' % model_inout_dir)
-logging.info('    stompy_dir = %s' % stompy_dir)
-logging.info('    float_format = %s' % float_format)
+# check if we are supposed to delete any balance tables that already exist in the balance table folder
+# and do so if we are
+if step0_config.delete_balance_tables:
+    logging.info('Deleting all files and directories except .log files found in %s' % step0_config.balance_table_dir)
+    for file_or_dir in os.listdir(step0_config.balance_table_dir):
+        path = os.path.join(step0_config.balance_table_dir, file_or_dir)
+        if os.path.isdir(path):    
+            shutil.rmtree(path)
+        else:
+            if not '0.log' in file_or_dir or '1.log' in file_or_dir:
+                os.remove(path)
+
+# load polygon shapefile
+logging.info('Loading polygon shapefile %s' % step0_config.poly_path)
+poly_df = gpd.read_file(step0_config.poly_path)
+pmax = len(poly_df)
+Area = poly_df.area.values
+
+# load transect shapefile
+logging.info('Loading transect shapefile %s' % step0_config.tran_path)
+gdf     = gpd.read_file(step0_config.tran_path)
+left    = gdf.left
+right   = gdf.right
+p2t = Poly2Transect(left,right)   
 
 # path to his and his bal files
-histfn      = os.path.join(path,runid,'dwaq_hist.nc')
-histbal_fn  = os.path.join(path,runid,'dwaq_hist_bal.nc')
+histfn      = os.path.join(step0_config.run_dir,'dwaq_hist.nc')
+histbal_fn  = os.path.join(step0_config.run_dir,'dwaq_hist_bal.nc')
 
 # log start of readin files
 logging.info('reading %s and %s' % (histfn,histbal_fn))
 
-# open hist file (may need to create it with stompy first)
+# open hist file (if you get an error here, may need to create it first)
 hdata = xr.open_dataset(histfn)
 
-# open hist-bal file, create if needed
+# open hist-bal file, create it from the *-bal.his file if needed
 try:
     hbdata = xr.open_dataset(histbal_fn)
 except:
-    fn = os.path.join(path,runid,'%s-bal.his' % output_prefix)
-    hbdata = dio.bal_his_file_xarray(fn)
-    hbdata.to_netcdf(histbal_fn)
-    hbdata = xr.open_dataset(histbal_fn)
+    fn = None
+    for fn1 in os.listdir(step0_config.run_dir):
+        if '-bal.his' in fn1:
+            fn = fn1
+    if fn is None:
+        raise Exception('Cannot find *-bal.his file in %s' % step0_config.run_dir)
+    else:
+        hbdata = step0_config.dio.bal_his_file_xarray(os.path.join(step0_config.run_dir,fn))
+        hbdata.to_netcdf(histbal_fn)
+        hbdata = xr.open_dataset(histbal_fn)
 
 # get the start time and make sure his and his-bal start times match
 start_time = pd.to_datetime(hdata.time.values[0])
@@ -223,17 +176,13 @@ for i in range(len(hbdata.region.values)):
         hbdata.region.values[i] = 'polygon%d' % polyc
         polyc = polyc + 1
 
-# create the balance tables directory if it doesn't exist yet
-if not os.path.exists(balance_table_dir):
-    os.makedirs(balance_table_dir)
-    
 # loop through all the parameters (nh4, no3, diat, etc.)
 varnames = [var.lower() for var in hbdata.sub.values]
 for varname in varnames:
 
     # if not processing all substances skip substances that aren't in the list
-    if not substance_list=='all':
-        if not varname in substance_list:
+    if not step0_config.substance_list=='all':
+        if not varname in step0_config.substance_list:
             logging.info('Skipping substance %s because it is not in the user-specified list of substances to process ...' % varname)     
             continue
 
@@ -241,7 +190,7 @@ for varname in varnames:
     logging.info('Creating balance table for substance %s...' % varname)
     
     # create name for balance table output file
-    outfile = os.path.join(balance_table_dir,varname +'_Table.csv')
+    outfile = os.path.join(step0_config.balance_table_dir,varname +'_Table.csv')
     
     ##%% Get all the data
     TransectBL = ['transect' in name for name in hdata.location_names.values[0]]
@@ -307,25 +256,12 @@ for varname in varnames:
     Vp_mean = Vp_mean.where(Vp_mean.time<=tmin,drop=True)
     varT = varT.where(varT.time<=tmin,drop=True)
     varP_bal = varP_bal.where(varP_bal.time<=tmin,drop=True)
-    
-    # load shapefiles
-    gdf     = gpd.read_file(shpfn_tran)
-    left    = gdf.left
-    right   = gdf.right
-    #pmax = max(left.max(),right.max()) +1 # total number of polygons and they are zero-based
-    
-    poly_df = gpd.read_file(shpfn_poly)
-    pmax = len(poly_df)
-
-    Area = poly_df.area.values
-    
-    #%% Getting the transect fluxes
-    p2t = Poly2Transect(left,right)    
+     
     
     # get the units and determine if per area or per volume, then compute dMass/dt accordingly
     units1 = varP.units
-    if varname in units_override.keys():
-        units = units_override[varname]
+    if varname in step0_config.units_override.keys():
+        units = step0_config.units_override[varname]
         logging.info('units in dwaq_hist.nc are %s, overriding with %s' % (units1, units))
     else:
         units = units1
@@ -383,7 +319,7 @@ for varname in varnames:
     df_output.set_index(time, inplace=True)
 
     # save
-    df_output.to_csv(outfile,columns=column_list,float_format=float_format)   
+    df_output.to_csv(outfile,columns=column_list,float_format=step0_config.float_format)   
     logging.info('Saved %s' % outfile)
 
 # clean up logging

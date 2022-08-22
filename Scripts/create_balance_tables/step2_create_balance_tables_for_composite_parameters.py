@@ -29,81 +29,6 @@ if __name__ == "__main__":
     importlib.reload(step0_config)
 
 #################################################################
-# USER INPUT
-#################################################################
-
-# get variables out of the configuration module (see step0_config.py in this folder)
-from step0_config import runid, is_delta, balance_table_dir, model_inout_dir, float_format
-
-# ugly complicated process to get the water year from the runid
-if 'FR' in runid:
-    # this extracts the 2 digit water year, assuming format of runid is like FR13_003 for WY2013 run 003
-    yr = int(runid.split('_')[0][2:])
-    # turn into water year string
-    water_year = 'WY%d' % (2000 + yr)
-elif 'G141' in runid:
-    # there are two formats for agg runs, G141_13_003 is water year 2013, G141_13to18_207 is water years 2013-2018
-    # get the string that represents the water year
-    yr = runid.split('_')[1]
-    # if it spans mutlple water years, keep the string, just add 'WY' in front of it
-    if 'to' in yr:
-        water_year = 'WY' + yr
-    # otherwise extract the integer and add it to 2000
-    else:
-        water_year = 'WY%d' % (2000 + int(yr))
-
-# path to the lsp file
-#lsp_path = '/richmondvol1/hpcshared/Delta/BGC_model/Full_res/FR16_28/FR16_28/wy2016.lsp'
-#lsp_path = '/hpcvol2/open_bay/BGC_model/Full_res/%s/%s/sfbay_dynamo000.lsp' % (water_year,runid)
-if 'FR' in runid:
-    lsp_path = os.path.join(model_inout_dir,'Full_res',water_year,runid,'sfbay_dynamo000.lsp')
-else:
-    lsp_path = os.path.join(model_inout_dir,'Grid141',water_year,runid,'sfbay_dynamo000.lsp')
-
-# list of composite parameters -- include all possible component parameters, script will automatically 
-# check if they were included in this run and leave it out if needed
-composite_parameters = {
-    'N-Algae' : ['Diat', 'Green','DiatS1'],
-    'N-Zoopl' : ['Zoopl_V', 'Zoopl_E', 'Zoopl_R'],
-    'Algae' : ['Diat', 'Green','DiatS1'],
-    'Zoopl' : ['Zoopl_V', 'Zoopl_E', 'Zoopl_R'],
-    'DIN' : ['NH4', 'NO3'],
-    'TN'  : ['NH4', 'NO3', 'PON1', 'DON', 'Diat', 'DiatS1', 'Green', 'Zoopl_V', 'Zoopl_E', 'Zoopl_R'], 
-    'TN_include_sediment' : ['NH4', 'NO3', 'PON1', 'DON', 'DetNS1', 'DetNS2', 
-                             'Diat', 'Green', 'DiatS1', 'Zoopl_V', 'Zoopl_E', 'Zoopl_R',
-                             'Mussel_V','Mussel_E','Mussel_R','Grazer4_V','Grazer4_E','Grazer4_R'],    
-    'DetNS' : ['DetNS1', 'DetNS2'],                  
-    'TP'  : ['PO4', 'POP1', 'DOP', 'Diat', 'Green', 'DiatS1', 'Zoopl_V', 'Zoopl_E', 'Zoopl_R'],
-    'TP_include_sediment' : ['PO4', 'POP1', 'DOP', 'DetPS1', 'DetPS2', 
-                             'Diat', 'Green', 'DiatS1', 'Zoopl_V', 'Zoopl_E', 'Zoopl_R',
-                             'Mussel_V','Mussel_E','Mussel_R','Grazer4_V','Grazer4_E','Grazer4_R'],
-    'DetPS' : ['DetPS1', 'DetPS2'],
-    'DetSi' : ['DetSiS1', 'DetSiS2'],
-    'Grazer4' : ['Grazer4_V', 'Grazer4_E', 'Grazer4_R'],
-    'Mussel' : ['Mussel_V', 'Mussel_E', 'Mussel_R'], 
-    'Clams' : ['Grazer4_V', 'Grazer4_E', 'Grazer4_R', 'Mussel_V', 'Mussel_E', 'Mussel_R']
-}
-
-# is the budget of each composite parameter in grams of C, N, P, etc?
-composite_bases = {
-    'N-Algae' : 'N',
-    'N-Zoopl' : 'N',
-    'Algae' : 'C',
-    'Zoopl' : 'C',
-    'DIN' : 'N',
-    'TN'  : 'N', 
-    'TN_include_sediment'  : 'N', 
-    'DetNS' : 'N',
-    'TP'  : 'P', 
-    'TP_include_sediment'  : 'P', 
-    'DetPS' : 'P',
-    'DetSi' : 'Si',
-    'Grazer4' : 'C',
-    'Mussel' : 'C',
-    'Clams' : 'C'
-}
-
-#################################################################
 # FUNCTIONS
 #################################################################
 
@@ -142,7 +67,7 @@ logging.basicConfig(
 level=logging.INFO,
 format="%(asctime)s [%(levelname)s] %(message)s",
 handlers=[
-    logging.FileHandler(os.path.join(balance_table_dir,"log_step2.log"),'w'),
+    logging.FileHandler(os.path.join(step0_config.balance_table_dir,"log_step2.log"),'w'),
     logging.StreamHandler(sys.stdout)
 ])
 
@@ -153,26 +78,10 @@ conda_env=os.environ['CONDA_DEFAULT_ENV']
 today= datetime.datetime.now().strftime('%b %d, %Y')
 logging.info('Composite balance tables with "Ungrouped Rx" were produced on %s by %s on %s in %s using %s' % (today, user, hostname, conda_env, scriptname))
 
-# log configuration variables
-logging.info('The following global variables were loaded from step0_conf.py:')
-logging.info('    runid = %s' % runid)
-logging.info('    is_delta = %r' % is_delta)
-logging.info('    balance_table_dir = %s' % balance_table_dir)
-logging.info('    model_inout_dir = %s' % model_inout_dir)
-logging.info('    float_format = %s' % float_format)
-
-# do some checks to make sure we're reading the right lsp file, makes some assumptiions about how files
-# are organized on our servers, so if that changes may have to debug this part
-if not runid in lsp_path:
-    raise Exception('Danger: *.lsp path looks incorrect, aborting')
-if is_delta:
-    if (not (('Delta' in lsp_path) or ('delta' in lsp_path))):
-        raise Exception('Danger: *.lsp path looks incorrect, aborting')
-
 # scan the lsp file for mentions of N:C ratios and P:C ratios
 NC_ratios = {}
 PC_ratios = {}
-with open(lsp_path,'r') as f:
+with open(step0_config.lsp_path,'r') as f:
     lines = f.readlines()
     for i in range(len(lines)-1):
         line1 = lines[i]
@@ -213,12 +122,12 @@ with open(lsp_path,'r') as f:
             PC_ratios['Mussel_V'] = float(line2.split(':')[1])
             PC_ratios['Mussel_E'] = float(line2.split(':')[1])
             PC_ratios['Mussel_R'] = float(line2.split(':')[1])
-logging.info('The following N:C ratios were found in %s:' % lsp_path)
+logging.info('The following N:C ratios were found in %s:' % step0_config.lsp_path)
 keys = list(NC_ratios.keys())
 keys.sort()
 for key in keys:
     logging.info('    %s : %f' % (key, NC_ratios[key]))
-logging.info('The following P:C ratios were found in %s:' % lsp_path)
+logging.info('The following P:C ratios were found in %s:' % step0_config.lsp_path)
 keys = list(PC_ratios.keys())
 keys.sort()
 for key in keys:
@@ -226,22 +135,22 @@ for key in keys:
 
 # read the lsp file and return a list of the substances
 substances = []
-with open(lsp_path,'r') as f:
+with open(step0_config.lsp_path,'r') as f:
     for line in f.readlines():
         if '-fluxes for [' in line:
             # the following ugly expression returns the string between the brackets, stripped of whitespace:
             substances.append(line[line.find("[")+1:line.find("]")].strip()) 
-logging.info('The following substances were found in %s:' % lsp_path)
+logging.info('The following substances were found in %s:' % step0_config.lsp_path)
 for substance in substances:
     logging.info('    %s' % substance)
 
 # load all the balance tables into a dictionary
-logging.info('Reading balance tables from %s:' % balance_table_dir)
+logging.info('Reading balance tables from %s:' % step0_config.balance_table_dir)
 df_dict = {}
 for substance in substances.copy():
     table_name = '%s_Table.csv' % substance.lower()
     try:
-        df = pd.read_csv(os.path.join(balance_table_dir,table_name))
+        df = pd.read_csv(os.path.join(step0_config.balance_table_dir,table_name))
     except:
         logging.info('    Did not find %s' % table_name)
         substances.remove(substance)
@@ -279,13 +188,13 @@ for n in range(polymax+1):
 load_transp_list = ['%s,Loads in','%s,Loads out','%s,Transp in','%s,Transp out']
 
 # loop through the composite parameters
-for composite_param in composite_parameters.keys():
+for composite_param in step0_config.composite_parameters.keys():
     
     # log
     logging.info('Deriving balance table for %s' % composite_param)
 
     # check the base element for the composite parameter budget
-    composite_base = composite_bases[composite_param]
+    composite_base = step0_config.composite_bases[composite_param]
     logging.info('    Base element is %s' % composite_base)
 
     # initialize the balance table
@@ -299,7 +208,7 @@ for composite_param in composite_parameters.keys():
     any_components = False
 
     # loop through the component parameters making up the composite parameter
-    for component_param in composite_parameters[composite_param]:
+    for component_param in step0_config.composite_parameters[composite_param]:
 
         # log component parameter
         logging.info('    Adding %s budget ...' % component_param)
@@ -344,10 +253,10 @@ for composite_param in composite_parameters.keys():
 
     # now save the composite balance table
     table_name = composite_param.lower() + '_Table_Ungrouped_Rx.csv'
-    table_path = os.path.join(balance_table_dir, table_name)
+    table_path = os.path.join(step0_config.balance_table_dir, table_name)
     if any_components:
         logging.info('    Saving composite parameter table %s' % table_path)
-        df_composite.to_csv(table_path, index=False, float_format=float_format)
+        df_composite.to_csv(table_path, index=False, float_format=step0_config.float_format)
     else:
         logging.info('    No balance tables for component parameters of %s were found, so no composite table was created' % composite_param)
 

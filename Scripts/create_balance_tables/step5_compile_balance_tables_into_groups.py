@@ -27,40 +27,6 @@ if __name__ == "__main__":
     import importlib
     import step0_config
     importlib.reload(step0_config)
-    
-#########################################################################################
-# user input
-#########################################################################################
-
-# get variables out of the configuration module (see step0_config.py in this folder)
-from step0_config import runid, is_delta, balance_table_dir, group_def_dir, float_format
-
-# is run full resolution? 
-if 'FR' in runid:
-    FR = True
-else:
-    FR = False
-
-# list of run subfolders inside the directory defined above (if there is only one run and thus no 
-# subfolders, set runids = [''])
-# runids = ['cccsd','ebda','ebmud','minus50','plus50','san_jose']
-# import os
-# runids =  [f.name for f in os.scandir(output_dir) if f.is_dir() ]
-
-
-# names of text files defining groups and their connectivity (includning path)
-# group_definition_file   = '/hpcvol1/hpcshared/Scripts/Postprocessors/Control_Volume/control_volume_definitions_141.txt'
-# group_connectivity_file = '/hpcvol1/hpcshared/Scripts/Postprocessors/Control_Volume/connectivity_definitions_141.txt'
-
-
-# for FR Runs (includes new segments defined by sienna and whole bay added by allie...)
-if FR:
-    group_definition_file   = os.path.join(group_def_dir,'control_volume_definitions_FR.txt')
-    group_connectivity_file = os.path.join(group_def_dir,'connectivity_definitions_FR.txt')
-# for AGG runs (includs now whole bay group added by allie)
-else:
-    group_definition_file   = os.path.join(group_def_dir,'control_volume_definitions_141.txt')
-    group_connectivity_file = os.path.join(group_def_dir,'connectivity_definitions_141.txt')
 
 ######################
 # functions
@@ -90,7 +56,7 @@ logging.basicConfig(
 level=logging.INFO,
 format="%(asctime)s [%(levelname)s] %(message)s",
 handlers=[
-    logging.FileHandler(os.path.join(balance_table_dir,"log_step5.log"),'w'),
+    logging.FileHandler(os.path.join(step0_config.balance_table_dir,"log_step5.log"),'w'),
     logging.StreamHandler(sys.stdout)
 ])
 
@@ -101,14 +67,6 @@ conda_env=os.environ['CONDA_DEFAULT_ENV']
 today= dt.datetime.now().strftime('%b %d, %Y')
 logging.info('Group level balance tables were produced on %s by %s on %s in %s using %s' % (today, user, hostname, conda_env, scriptname))
 
-# log configuration variables
-logging.info('The following global variables were loaded from step0_conf.py:')
-logging.info('    runid = %s' % runid)
-logging.info('    is_delta = %r' % is_delta)
-logging.info('    balance_table_dir = %s' % balance_table_dir)
-logging.info('    group_def_dir = %s' % group_def_dir)
-logging.info('    float_format = %s' % float_format)
-
 # read from text file a dictionary grouping control volumes into lettered groups 
 # format:
 #   GROUP_NAME : CV1, CV2, CV3, ...
@@ -116,7 +74,7 @@ logging.info('    float_format = %s' % float_format)
 #   GROUP_NAME = name of group
 #   CV1, CV2, CV3, ... = numbers of control volumes comprising the group
 group_dict = {}
-with open(group_definition_file,'r') as f: 
+with open(step0_config.group_def_path,'r') as f: 
     for line in f.readlines():
         # split line at ':' into key and control volume list, dropping newline character first
         (key, val) = line.rstrip('\n').split(':')  
@@ -137,7 +95,7 @@ with open(group_definition_file,'r') as f:
 #   [CVf, CVt]_i = defines a flux from control volume CVf to control volume CVt
 #   where i = 1, 2, 3, ... make up all the fluxes for a particular group/direction pair
 flux_pairs_dict = {}
-with open(group_connectivity_file,'r') as f: 
+with open(step0_config.group_con_path,'r') as f: 
     for line in f.readlines():
         # split line at ':' into key and connectivity volume list, dropping newline character first
         (key, val) = line.rstrip('\n').split(':') 
@@ -172,7 +130,7 @@ for file in file_list:
 Nparams = len(param_list)
 
 # output number of parameters and types of parameters found 
-logging.info('Scanned directory %s for files with format PARAM_Table.csv and retrieved following list of %d parameters:' % (balance_table_dir, Nparams))
+logging.info('Scanned directory %s for files with format PARAM_Table.csv and retrieved following list of %d parameters:' % (step0_config.balance_table_dir, Nparams))
 for param in param_list:
     logging.info('   %s' % param)
 
@@ -186,7 +144,7 @@ for ip in range(Nparams):
     # read in the balance table corresponding to this parameter
     balance_table_fn = param_list[ip].lower() + '_Table.csv'
     try:
-        df = pd.read_csv(os.path.join(balance_table_dir,balance_table_fn))
+        df = pd.read_csv(os.path.join(step0_config.balance_table_dir,balance_table_fn))
     except:
         logging.info('error reading %s, skipping this one ...' % balance_table_fn)
         continue
@@ -428,7 +386,7 @@ for ip in range(Nparams):
     # Print master dataframe to *.csv
     ########################################################################################
     
-    df_master.to_csv(os.path.join(balance_table_dir,'%s_Table_By_Group.csv' % param_name.lower()),index=False, float_format=float_format)
+    df_master.to_csv(os.path.join(step0_config.balance_table_dir,'%s_Table_By_Group.csv' % param_name.lower()),index=False, float_format=step0_config.float_format)
     
 
 

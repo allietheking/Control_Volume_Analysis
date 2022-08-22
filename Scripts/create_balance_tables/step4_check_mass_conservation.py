@@ -26,36 +26,25 @@ if __name__ == "__main__":
 
     import importlib
     import step0_config
-    importlib.reload(step0_config) 
+    importlib.reload(step0_config)
 
 #################################################################
 # USER INPUT
 #################################################################
 
-# get variables out of the configuration module (see step0_config.py in this folder)
-from step0_config import runid, is_delta, balance_table_dir, model_inout_dir, error_tol_percent, abort_for_mass_cons_error
 
-# which parameters to check?
-param_list = ['TN_include_sediment']
-
-# for each parameter in param_list, pick a reaction to normalize everything by -- error in the terms
-# that should be zero will be measured as a percentage of this term
-normalize_by_dict = {'TN_include_sediment' : 'NO3,dDenit',
-                      'TN' : 'NO3,dDenit'}
 
 # is full resolution?
-if 'FR' in runid:
+if 'FR' in step0_config.runid:
     FR = True
 else:
     FR = False
 
 # path to shapefiles corresponding to the polygons in the balance tables, also select a subset of polygons to plot
-if is_delta:
-    shpfn_poly = os.path.join(model_inout_dir,'Delta','inputs','shapefiles','control_volumes','Delta_Fullres_Polygons_Dave_Plus_WB_v4.shp')  
+if step0_config.is_delta:
     rx_pos = (508800,4286000) 
 
 elif FR:
-    shpfn_poly = os.path.join(model_inout_dir,'inputs','shapefiles','Agg_mod_contiguous_plus_subembayments_shoal_channel.shp')
     iplot = [0, 117, 139, 2, 113, 114, 115, 111, 1, 3, 116, 7, 4, 112, 5, 108, 109, 110, 9, 107, 
     6, 8, 29, 10, 12, 11, 138, 137, 100, 19, 18, 13, 20, 26, 25, 21, 14, 24, 101, 102, 103, 104, 
     105, 106, 28, 27, 22, 15, 30, 23, 35, 34, 33, 32, 31, 17, 41, 40, 39, 38, 37, 36, 16, 140, 
@@ -64,7 +53,6 @@ elif FR:
     68, 69, 70, 71, 78, 72, 84, 79, 146, 80, 82, 83, 142, 145, 73, 81, 74, 76, 77, 75]
     rx_pos = (573900,4204500)
 else:
-    shpfn_poly =  os.path.join(model_inout_dir,'inputs','shapefiles','Agg_mod_contiguous_141.shp')
     iplot = [  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,
         13,  14,  15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,
         26,  27,  28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  38,
@@ -117,7 +105,7 @@ logging.basicConfig(
 level=logging.INFO,
 format="%(asctime)s [%(levelname)s] %(message)s",
 handlers=[
-    logging.FileHandler(os.path.join(balance_table_dir,"log_step4.log"),'w'),
+    logging.FileHandler(os.path.join(step0_config.balance_table_dir,"log_step4.log"),'w'),
     logging.StreamHandler(sys.stdout)
 ])
 
@@ -128,39 +116,30 @@ conda_env=os.environ['CONDA_DEFAULT_ENV']
 today= datetime.datetime.now().strftime('%b %d, %Y')
 logging.info('Checking for mass conservation on %s by %s on %s in %s using %s' % (today, user, hostname, conda_env, scriptname))
 
-# log configuration variables runid, 
-logging.info('The following global variables were loaded from step0_conf.py:')
-logging.info('    runid = %s' % runid)
-logging.info('    is_delta = %r' % is_delta)
-logging.info('    balance_table_dir = %s' % balance_table_dir)
-logging.info('    model_inout_dir = %s' % model_inout_dir)
-logging.info('    error_tol_percent = %s' % error_tol_percent)
-logging.info('    abort_for_mass_cons_error = %s' % abort_for_mass_cons_error)
-
 # put mass conservation check plots in the same directory as the balance tables themselves
-output_path = os.path.join(balance_table_dir,'mass_conservation_check')
+output_path = os.path.join(step0_config.balance_table_dir,'mass_conservation_check')
 if not os.path.exists(output_path):
     os.makedirs(output_path)
 
 # loop through the parameeters
-for param in param_list:
+for param in step0_config.mass_cons_check_param_list:
 
     # name of the pdf file that will contain maps showing contribution of the grouped reaction terms
-    rx_map_path = os.path.join(output_path, '%s_%s_reaction_percentage_map.pdf' % (runid,param))
+    rx_map_path = os.path.join(output_path, '%s_%s_reaction_percentage_map.pdf' % (step0_config.runid,param))
 
     # which reaction to normalize by
-    normalize_by = normalize_by_dict[param]
+    normalize_by = step0_config.mass_cons_check_normalize_by_dict[param]
 
     # log 
-    logging.info('Checking %s for mass conservation, normalizing by %s, using error tolerance of %f' % (param, normalize_by, error_tol_percent))
+    logging.info('Checking %s for mass conservation, normalizing by %s, using error tolerance of %f' % (param, normalize_by, step0_config.error_tol_percent))
     
     # read table
     table_name = '%s_Table.csv' % param.lower()
-    df = pd.read_csv(os.path.join(balance_table_dir,table_name))
+    df = pd.read_csv(os.path.join(step0_config.balance_table_dir,table_name))
     
     # read the polygon shapefile, and if delta, find the water board polygons and select those to plot
-    gdf = gpd.read_file(shpfn_poly)
-    if is_delta:
+    gdf = gpd.read_file(step0_config.poly_path)
+    if step0_config.is_delta:
         ind = gdf['polytype'] == 'WB'
         iplot = list(gdf.loc[ind].index)
     
@@ -199,9 +178,9 @@ for param in param_list:
             counter2 = counter2 + 1
         ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05))
         ax.set_ylabel('reaction rate g/d')
-        ax.set_title('%s: %s' % (runid, poly))
+        ax.set_title('%s: %s' % (step0_config.runid, poly))
         fig.tight_layout()
-        plt.savefig(os.path.join(output_path,'%s_%s_%s_check_rx_mass_cons.png' % (runid, param, poly)))
+        plt.savefig(os.path.join(output_path,'%s_%s_%s_check_rx_mass_cons.png' % (step0_config.runid, param, poly)))
         plt.close('all')
     
         # compute time average of all reaction terms
@@ -234,7 +213,7 @@ for param in param_list:
             gdf.plot(ax=ax, column='percent', vmin=-100, vmax=100, cmap='seismic', legend=True)
             gdf.boundary.plot(ax=ax, color='k')
             ax.axis('off')
-            ax.set_title('%s: reaction rate as percent of |%s|\ntime averaged over entire simulation' % (runid, normalize_by))
+            ax.set_title('%s: reaction rate as percent of |%s|\ntime averaged over entire simulation' % (step0_config.runid, normalize_by))
             ax.text(rx_pos[0],rx_pos[1],rx1,ha='left',va='top',fontsize=14)
             fig.tight_layout()
             pdf.savefig()
@@ -245,17 +224,17 @@ for param in param_list:
     
         if 'ZERO' in rx:
     
-            if df_percent_avg[rx] > error_tol_percent:
+            if df_percent_avg[rx] > step0_config.error_tol_percent:
 
                 logging.info('    WARNING: Reaction %s is NOT zero. Averaged over whole domain and simulation period it is %f\n' % (rx,df_percent_avg[rx]) + 
-                             '             percent of %s, which exceeds the error tolerance %f percent' % (normalize_by, error_tol_percent))
+                             '             percent of %s, which exceeds the error tolerance %f percent' % (normalize_by, step0_config.error_tol_percent))
 
-                if abort_for_mass_cons_error:
+                if step0_config.abort_for_mass_cons_error:
                     raise Exception('Mass conservation error detected, see command line and log_step4.log for details')
 
             else:
 
                 logging.info('    SUCCESS: Reaction %s, averaged over whole domain and simulation period, is %f\n' % (rx,df_percent_avg[rx]) +  
-                             '             percent of %s, which is below error tolerance %f percent' % (normalize_by, error_tol_percent))
+                             '             percent of %s, which is below error tolerance %f percent' % (normalize_by, step0_config.error_tol_percent))
     
     logger_cleanup()    
