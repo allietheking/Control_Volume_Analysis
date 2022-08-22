@@ -22,12 +22,12 @@ from scipy.signal import butter, filtfilt
 hostname = socket.gethostname()
 if hostname == 'richmond':
     raise Exception("Do not run this script on richmond until we update the conda environment... run on chicago or your laptop instead")
+import step0_config
 
 # if running the script alone, load the configuration module (in this folder)
 if __name__ == "__main__":
 
     import importlib
-    import step0_config
     importlib.reload(step0_config)
 
 ######################
@@ -108,15 +108,18 @@ logging.info('Time aggregated balance tables were produced on %s by %s on %s in 
 # get a list of all the files in the balance table directory, and pick out the ones with the format
 # (param)_Table.csv or (param)_Table_By_Group.csv
 table_list = []
-file_list = os.listdir(balance_table_dir)
+file_list = os.listdir(step0_config.balance_table_dir)
 for file in file_list:
     if 'Table.csv' in file:
-        table_list.append(file)
+        param = file[0:-10]
+        if param in step0_config.plot_substance_list:
+            table_list.append(file)
     elif 'Table_By_Group.csv' in file:
         table_list.append(file)
 
 # output number of parameters and types of parameters found 
-logging.info('Scanned directory %s for files with format PARAM_Table.csv and PARAM_Table_By_Group.csv and retrieved following list tables:' % balance_table_dir)
+logging.info('Scanned directory %s for files with format PARAM_Table.csv and PARAM_Table_By_Group.csv where PARAM is in ' % step0_config.balance_table_dir + 
+             'step0_config.plot_substance_list and retrieved following list of balance tables:')
 for table in table_list:
     logging.info('   %s' % table)
 
@@ -186,6 +189,9 @@ for balance_table_fn in table_list:
             wy_list.append(yr+1)
         yr += 1
 
+    # time step in days
+    deltat_days = (time[1]-time[0])/np.timedelta64(1,'D')
+
     # print water years
     logging.info('    Identified following water years in balance table: %s' % wy_list ) 
 
@@ -220,7 +226,10 @@ for balance_table_fn in table_list:
                                          df.time<np.datetime64('%d-10-01' % wy)))
 
                     # take cumulative sum
-                    df_tavg.loc[ind,column_list_cum] = df.loc[ind,column_list_cum].cumsum()
+                    df_tavg.loc[ind,column_list_cum] = df.loc[ind,column_list_cum].cumsum() * deltat_days
+
+            # since we integrated in time, units are now Mg instead of Mg/d
+            df_tavg.columns = df_tavg.columns.str.replace('Mg/d','Mg')
 
         # take spring-neap filter and then crop data before Oct 1 of first water year
         elif tavg=='Filtered':
@@ -346,7 +355,7 @@ for balance_table_fn in table_list:
                     df_tavg = df_tavg.append(df3)
 
         # save the results to a balance table, appending the time averaging scheme to the FRONT
-        balance_table_fn_out = '%s_%s' % (balance_table_fn, tavg)            
+        balance_table_fn_out = '%s_%s.csv' % (balance_table_fn.replace('.csv',''), tavg)            
         logging.info('    Saving %s' % balance_table_fn_out) 
         df_tavg.to_csv(os.path.join(step0_config.balance_table_dir,balance_table_fn_out),index=False, float_format=step0_config.float_format)
 

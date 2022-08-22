@@ -21,12 +21,12 @@ import socket
 hostname = socket.gethostname()
 if hostname == 'richmond':
     raise Exception("Do not run this script on richmond until we update the conda environment... run on chicago or your laptop instead")
+import step0_config
 
 # if running the script alone, load the configuration module (in this folder)
 if __name__ == "__main__":
 
     import importlib
-    import step0_config
     importlib.reload(step0_config)
 
 #################################################################
@@ -163,9 +163,12 @@ for composite_param in step0_config.composite_reaction_dict.keys():
                 if not sub in substances:
                     logging.info('            %s not found, and %s is not included in this model run, skipping ...' % (rx,sub))
                     continue
+                elif sub.lower() in step0_config.substance_list:
+                    logging.info('            %s not found, but %s was included in step0_config.substance_list, so it is safe to assume this reaction was just not part of the run, skipping... ' % (rx,sub))
+                    continue
                 else:
-                    raise Exception('%s not found in %s, but %s is a substance in this model run. Add' % (rx, input_table_name, sub) + 
-                                    '%s to substance_list in step0_config.py and start over from' % sub + 
+                    raise Exception('%s not found in %s, but %s is a substance in this model run. Add ' % (rx, input_table_name, sub.lower()) + 
+                                    '%s to substance_list in step0_config.py and start over from ' % sub.lower() + 
                                     'step1_create_balance_tables.py')
 
             # if the reaction WAS in the original list, but it isn't in the list of remaining reactions,

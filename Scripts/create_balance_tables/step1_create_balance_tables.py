@@ -27,12 +27,12 @@ try:
 except:
     raise Exception('\nif geopandas is not found...\n' + 
                       'on chicago:  conda activate geo_env\n')
+import step0_config
 
 # if running the script alone, load the configuration module (in this folder)
 if __name__ == "__main__":
 
     import importlib
-    import step0_config 
     importlib.reload(step0_config)
 
 ##################
@@ -107,8 +107,9 @@ if step0_config.delete_balance_tables:
         if os.path.isdir(path):    
             shutil.rmtree(path)
         else:
-            if not '0.log' in file_or_dir or '1.log' in file_or_dir:
-                os.remove(path)
+            if not '0.log' in file_or_dir:
+                if not '1.log' in file_or_dir:
+                    os.remove(path)
 
 # load polygon shapefile
 logging.info('Loading polygon shapefile %s' % step0_config.poly_path)

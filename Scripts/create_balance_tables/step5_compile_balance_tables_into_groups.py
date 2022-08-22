@@ -20,12 +20,12 @@ import socket
 hostname = socket.gethostname()
 if hostname == 'richmond':
     raise Exception("Do not run this script on richmond until we update the conda environment... run on chicago or your laptop instead")
+import step0_config
 
 # if running the script alone, load the configuration module (in this folder)
 if __name__ == "__main__":
 
     import importlib
-    import step0_config
     importlib.reload(step0_config)
 
 ######################
@@ -122,15 +122,19 @@ for direction in direction_list:
 
 # get a list of all the files in the balance table directory, identify the ones with the format (param)_Table.csv, and get the list of parameters
 param_list = []
-file_list = os.listdir(balance_table_dir)
+file_list = os.listdir(step0_config.balance_table_dir)
 for file in file_list:
     if 'Table.csv' in file:
         param = file[0:-10]
-        param_list.append(param)
+        if param in step0_config.plot_substance_list:
+            param_list.append(param)
+        else:
+            logging.info('skipping %s_Table.csv because %s is not in step0_config.plot_substance_list' % (param, param))
 Nparams = len(param_list)
 
 # output number of parameters and types of parameters found 
-logging.info('Scanned directory %s for files with format PARAM_Table.csv and retrieved following list of %d parameters:' % (step0_config.balance_table_dir, Nparams))
+logging.info('Scanned directory %s for files with format PARAM_Table.csv where PARAM is in ' % step0_config.balance_table_dir + 
+             'step0_config.plot_substance_list and retrieved following list of %d parameters:' % Nparams)
 for param in param_list:
     logging.info('   %s' % param)
 

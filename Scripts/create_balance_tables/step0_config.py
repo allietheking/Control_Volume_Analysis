@@ -11,19 +11,28 @@ alliek august 2022
 ##############################
 
 # this is the run you want to process
-runid = 'G141_13to18_197'
+runid = 'G141_13to18_207'
 
 # base level substances to process. set to string 'all' or a list of substance strings -- warning, processing 
 # all of them takes a long time and uses a lot of space (this is used in step1_create_balance_tables.py)
 # substance_list = 'all'
-substance_list = ['continuity', 'don', 'detns1', 'detns2', 'diat', 'diats1', 'green', 'nh4', 'no3', 'pon1', 'oxy', 'zoopl_e', 'zoopl_r', 'zoopl_v']
+substance_list = ['continuity', 'nh4', 'no3', 'pon1', 'don', 'diat', 'diats1', 'green', 'oxy', 'zoopl_e', 'zoopl_r', 'zoopl_v', 'detns1', 'detns2', 'oons1', 'oons2']
+
+# list of substances we think we are actually going to want to plot -- to save space, the 
+# step5_compile_balance_tables_into_groups.py and step6_aggregate_in_time.py scripts will only process these substances
+plot_substance_list = ['tn_include_sediment','tn','din','nh4','no3','don',
+                        'pon1','n-algae','n-zoopl','totaldetns','detns1','detns2','oons1','oons2',
+                        'oxy','algae','diat','green','diats1','zoopl']
+
+
 
 # list of time averaging schemes to apply (saves space to skip some if we don't need them) 
 # (this is used in step6_aggregate_in_time.py)
-tavg_list = ['Cumulative', 'Filtered', 'Annual', 'Seasonal', 'Monthly', 'Weekly']
+#tavg_list = ['Cumulative', 'Filtered', 'Annual', 'Seasonal', 'Monthly', 'Weekly']
+tavg_list = ['Cumulative', 'Filtered', 'Seasonal']
 
 # float format for csv files
-float_format = '%1.10e'
+float_format = '%1.6e'
 
 # set tolerance for mass conservation error as a percentage of whatever variable we chose to normalize by (this is used in step4_check_mass_conservation.py)
 error_tol_percent = 0.1
@@ -42,7 +51,7 @@ delete_balance_tables = True
 #    (there's a small leak when N is passed from DIN to algae because we're using an old version of DWAQ)
 is_delta = False
 
-# base directory for model input and output (this definitely runs on linux, in theory can also run this in windows and use mounted drive)
+# base directory for model input, namely the shapefiles (this definitely runs on linux, in theory can also run this in windows and use mounted drive)
 #model_inout_dir = 'X:\hpcshared'
 model_inout_dir = '/richmondvol1/hpcshared'
 
@@ -80,16 +89,16 @@ composite_parameters = {
     'TN_include_sediment' : ['NH4', 'NO3', 'PON1', 'DON', 'DetNS1', 'DetNS2', 
                              'Diat', 'Green', 'DiatS1', 'Zoopl_V', 'Zoopl_E', 'Zoopl_R',
                              'Mussel_V','Mussel_E','Mussel_R','Grazer4_V','Grazer4_E','Grazer4_R'],    
-    'DetNS' : ['DetNS1', 'DetNS2'],                  
-    'TP'  : ['PO4', 'POP1', 'DOP', 'Diat', 'Green', 'DiatS1', 'Zoopl_V', 'Zoopl_E', 'Zoopl_R'],
-    'TP_include_sediment' : ['PO4', 'POP1', 'DOP', 'DetPS1', 'DetPS2', 
-                             'Diat', 'Green', 'DiatS1', 'Zoopl_V', 'Zoopl_E', 'Zoopl_R',
-                             'Mussel_V','Mussel_E','Mussel_R','Grazer4_V','Grazer4_E','Grazer4_R'],
-    'DetPS' : ['DetPS1', 'DetPS2'],
-    'DetSi' : ['DetSiS1', 'DetSiS2'],
-    'Grazer4' : ['Grazer4_V', 'Grazer4_E', 'Grazer4_R'],
-    'Mussel' : ['Mussel_V', 'Mussel_E', 'Mussel_R'], 
-    'Clams' : ['Grazer4_V', 'Grazer4_E', 'Grazer4_R', 'Mussel_V', 'Mussel_E', 'Mussel_R']
+    'TotalDetNS' : ['DetNS1','OONS1','DetNS2','OONS2'],                  
+#    'TP'  : ['PO4', 'POP1', 'DOP', 'Diat', 'Green', 'DiatS1', 'Zoopl_V', 'Zoopl_E', 'Zoopl_R'],
+#    'TP_include_sediment' : ['PO4', 'POP1', 'DOP', 'DetPS1', 'DetPS2', 
+#                             'Diat', 'Green', 'DiatS1', 'Zoopl_V', 'Zoopl_E', 'Zoopl_R',
+#                             'Mussel_V','Mussel_E','Mussel_R','Grazer4_V','Grazer4_E','Grazer4_R'],
+#    'TotalDetPS' : ['DetPS1', 'DetPS2','OOPS1', 'OOPS2'],
+#    'TotalDetSi' : ['DetSiS1', 'DetSiS2','OOSiS1', 'OOSiS2'],
+#    'Grazer4' : ['Grazer4_V', 'Grazer4_E', 'Grazer4_R'],
+#    'Mussel' : ['Mussel_V', 'Mussel_E', 'Mussel_R'], 
+#    'Clams' : ['Grazer4_V', 'Grazer4_E', 'Grazer4_R', 'Mussel_V', 'Mussel_E', 'Mussel_R']
 }
 
 # is the budget of each composite parameter in grams of C, N, P, etc? (this is used in 
@@ -102,11 +111,11 @@ composite_bases = {
     'DIN' : 'N',
     'TN'  : 'N', 
     'TN_include_sediment'  : 'N', 
-    'DetNS' : 'N',
+    'TotalDetNS' : 'N',
     'TP'  : 'P', 
     'TP_include_sediment'  : 'P', 
-    'DetPS' : 'P',
-    'DetSi' : 'Si',
+    'TotalDetPS' : 'P',
+    'TotalDetSi' : 'Si',
     'Grazer4' : 'C',
     'Mussel' : 'C',
     'Clams' : 'C'
@@ -330,14 +339,14 @@ composite_reaction_dict = {
     },
 
     # have not gotten to these yet, leaving reactions ungrouped...
-    'DetNS' : {},
-    'TP' : {},
-    'TP_include_sediment' : {},
-    'DetPS' : {},
-    'DetSi' : {},
-    'Grazer4' : {},
-    'Mussel' : {},
-    'Clams' : {}
+    'TotalDetNS' : {},
+ #   'TP' : {},
+ #   'TP_include_sediment' : {},
+ #   'TotalDetPS' : {},
+ #   'TotalDetSi' : {},
+ #   'Grazer4' : {},
+ #   'Mussel' : {},
+ #   'Clams' : {}
 }
 
 # which parameters to check for mass conservation? put them in a list
