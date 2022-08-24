@@ -174,8 +174,20 @@ for param in step0_config.mass_cons_check_param_list:
         fig, ax = plt.subplots(figsize=(16,16))
         counter2 = 0
         for rx in rx_list:
+
+            ## skip some terms when troubleshooting to see smaller terms a bit better
+            #if rx=='NO3,dDenit':
+            #    continue
+            #if rx=='OONS2,dBurS2OON':
+            #    continue
+            #if rx=='DetNS2,dBurS2DetN':
+            #    continue
+            #if rx=='DiatS1,dBurS1Diat':
+            #    continue
+
             ax.plot(time, df1[rx], label=rx, color = plot_colors[counter2], linestyle = line_styles[counter2])
             counter2 = counter2 + 1
+
         ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05))
         ax.set_ylabel('reaction rate g/d')
         ax.set_title('%s: %s' % (step0_config.runid, poly))
@@ -224,17 +236,18 @@ for param in step0_config.mass_cons_check_param_list:
     
         if 'ZERO' in rx:
     
-            if df_percent_avg[rx] > step0_config.error_tol_percent:
+            if np.abs(df_percent_avg[rx]) > step0_config.error_tol_percent:
 
-                logging.info('    WARNING: Reaction %s is NOT zero. Averaged over whole domain and simulation period it is %f\n' % (rx,df_percent_avg[rx]) + 
-                             '             percent of %s, which exceeds the error tolerance %f percent' % (normalize_by, step0_config.error_tol_percent))
+                logging.info('WARNING: Reaction %s is NOT zero. Averaged over whole domain and simulation period it is %f ' % (rx,df_percent_avg[rx]) + 
+                              'percent of %s, which exceeds the error tolerance %f percent' % (normalize_by, step0_config.error_tol_percent))
 
                 if step0_config.abort_for_mass_cons_error:
-                    raise Exception('Mass conservation error detected, see command line and log_step4.log for details')
+                    raise Exception('ABORTING for mass conservation error, see command line and log_step4.log for details ' + 
+                                    'consider setting step0_config.abort_for_mass_cons_error to False for troubleshooting')
 
             else:
 
-                logging.info('    SUCCESS: Reaction %s, averaged over whole domain and simulation period, is %f\n' % (rx,df_percent_avg[rx]) +  
-                             '             percent of %s, which is below error tolerance %f percent' % (normalize_by, step0_config.error_tol_percent))
+                logging.info('SUCCESS: Reaction %s, averaged over whole domain and simulation period, is %f ' % (rx,df_percent_avg[rx]) +  
+                             'percent of %s, which is below error tolerance %f percent' % (normalize_by, step0_config.error_tol_percent))
     
     logger_cleanup()    
