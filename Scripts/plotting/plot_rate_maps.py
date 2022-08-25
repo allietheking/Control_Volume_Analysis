@@ -1,5 +1,17 @@
 
-''' allie'''
+''' alliek August 2022
+plot bay-wide maps of rates such as primary productivity, oxygen consumption, denitrification, etc. 
+at seasonal, monthly, or even weekly time steps. this script can plot one time step at a time, comparing 
+a list of run / water year combos at each time step, with one run/wy in each column, or it can plot multiple 
+time steps for just one run all on the same plot, with each time step being a column. you may plot rates 
+normalized by area, volume, or nothing. note that to create plots for a given time averaging period, you must
+have already conducted a time average of the balance tables for that period in step6_aggregate_in_time.py (in the 
+Scripts/create_balance_tables directory of this Control_Volume_Analysis repository). it is common to skip some
+time averaging periods to save space, so you may need to go back and run step6_aggregate_in_time.py again, if you
+want time resolution like weekly.
+
+feel free to define new rates -- search for "if rate_name==" to see where the rates are defined
+'''
 
 ##################
 # IMPORT MODULES
